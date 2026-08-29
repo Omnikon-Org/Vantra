@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Vantra backend",
+  "description": "Vantra backend foundation",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
