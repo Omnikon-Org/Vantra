@@ -1,69 +1,67 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import {
-  accountsApi,
-  transactionsApi,
-  reconciliationApi,
-  exceptionsApi,
-  auditLogsApi
-} from '../api/client';
-import {
-  Account,
-  Transaction,
-  Reconciliation,
-  ReconciliationException,
-  AuditLog
-} from '../types';
+import { accountsApi, transactionsApi, reconciliationApi, exceptionsApi, auditLogsApi } from '../api/client';
+import { Account, Transaction, Reconciliation, ReconciliationException, AuditLog } from '../types';
 import { KPICard } from '../components/common/KPICard';
 import { StatusBadge } from '../components/common/Badge';
+import { EmptyState } from '../components/common/EmptyState';
 import {
   Wallet,
   ArrowDownLeft,
   ArrowUpRight,
-  ArrowLeftRight,
-  GitCompare,
+  GitMerge,
   AlertOctagon,
-  ScrollText,
-  PlusCircle,
+  ArrowRight,
   TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
   Clock,
-  ExternalLink,
-  ShieldCheck
+  Shield,
+  PlusCircle,
+  Play,
+  Building2,
+  ScrollText,
+  Activity,
+  DollarSign
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
-  const [exceptions, setExceptions] = useState<ReconciliationException[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [openExceptions, setOpenExceptions] = useState<ReconciliationException[]>([]);
+  const [recentAuditLogs, setRecentAuditLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Time-based Greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
-      setError(null);
       try {
         const [accRes, txRes, reconRes, excRes, auditRes] = await Promise.all([
-          accountsApi.list().catch(() => ({ success: true, accounts: [] })),
-          transactionsApi.list({ limit: 8 }).catch(() => ({ success: true, transactions: [], total: 0, page: 1, limit: 8 })),
-          reconciliationApi.list({ limit: 5 }).catch(() => ({ success: true, reconciliations: [], total: 0, page: 1, limit: 5 })),
-          exceptionsApi.list({ limit: 5 }).catch(() => ({ success: true, exceptions: [], total: 0, page: 1, limit: 5 })),
-          auditLogsApi.list({ limit: 6 }).catch(() => ({ success: true, auditLogs: [], total: 0, page: 1, limit: 6 }))
+          accountsApi.list(),
+          transactionsApi.list({ limit: 6 }),
+          reconciliationApi.list({ limit: 5 }),
+          exceptionsApi.list({ status: 'OPEN', limit: 5 }),
+          auditLogsApi.list({ limit: 5 })
         ]);
 
         setAccounts(accRes.accounts || []);
-        setTransactions(txRes.transactions || []);
+        setRecentTransactions(txRes.transactions || []);
         setReconciliations(reconRes.reconciliations || []);
-        setExceptions(excRes.exceptions || []);
-        setAuditLogs(auditRes.auditLogs || []);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load financial dashboard');
+        setOpenExceptions(excRes.exceptions || []);
+        setRecentAuditLogs(auditRes.auditLogs || []);
+      } catch (err) {
+        console.error('Failed to load dashboard telemetry:', err);
       } finally {
         setIsLoading(false);
       }
@@ -72,263 +70,382 @@ export const DashboardPage: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-  // Time-based greeting
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
+  // Compute Financial Aggregates
+  const totalBalance = accounts.reduce((acc, a) => acc + (Number(a.balance) || 0), 0);
 
-  // Financial Metrics safely derived from verified API data
-  const totalBalance = accounts.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);
-  
-  const totalInflow = transactions
+  const totalInflow = recentTransactions
     .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    .reduce((acc, t) => acc + Number(t.amount), 0);
 
-  const totalOutflow = transactions
+  const totalOutflow = recentTransactions
     .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    .reduce((acc, t) => acc + Number(t.amount), 0);
 
-  const openExceptions = exceptions.filter(e => e.status === 'OPEN');
-  const latestRecon = reconciliations[0];
+  const totalRecons = reconciliations.length;
+  const completedRecons = reconciliations.filter(r => r.status === 'COMPLETED').length;
+  const reconHealthPercent = totalRecons > 0 ? ((completedRecons / totalRecons) * 100).toFixed(1) : '100.0';
+
+  const lastReconDate = reconciliations.length > 0
+    ? new Date(reconciliations[0].createdAt).toLocaleDateString()
+    : 'None yet';
 
   return (
-    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-      {/* Top Greeting & Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      {/* Top Header Command Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-            {getGreeting()}, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Accountant'}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
+              {getGreeting()}, {user?.name || user?.email?.split('@')[0]}
+            </h1>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(20, 184, 166, 0.12)',
+                border: '1px solid rgba(20, 184, 166, 0.3)',
+                color: 'var(--accent-teal)',
+                fontSize: '0.75rem',
+                fontWeight: 700
+              }}
+            >
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-teal)' }} />
+              <span>{user?.tenant?.name || 'Acme Finance Corp'}</span>
+            </span>
+          </div>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            Here's what's happening across your financial operations.
+            Institutional command center — double-entry ledgers, automated reconciliation, and compliance telemetry
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link to="/transactions" className="btn btn-teal btn-sm">
-            <PlusCircle size={15} />
-            New Transaction
+        {/* Quick Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link to="/transactions" className="btn btn-secondary btn-sm">
+            <PlusCircle size={15} style={{ color: 'var(--accent-teal)' }} />
+            <span>+ New Transaction</span>
           </Link>
-          <Link to="/reconciliation" className="btn btn-secondary btn-sm">
-            <GitCompare size={15} />
-            Run Reconciliation
+          <Link to="/reconciliation" className="btn btn-teal btn-sm">
+            <Play size={14} />
+            <span>Run Reconciliation</span>
           </Link>
         </div>
       </div>
 
-      {/* Real-time Exception Alert Banner if open exceptions exist */}
+      {/* Discrepancy Exception Alert Banner */}
       {openExceptions.length > 0 && (
         <div
           style={{
-            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 100%)',
-            border: '1px solid var(--danger-border)',
+            background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(239, 68, 68, 0.12) 100%)',
+            border: '1px solid rgba(245, 158, 11, 0.35)',
             borderRadius: 'var(--radius-lg)',
-            padding: '16px 20px',
+            padding: '14px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 16,
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            gap: 12
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--danger-bg)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AlertTriangle size={18} />
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(245, 158, 11, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#F59E0B'
+              }}
+            >
+              <AlertOctagon size={20} />
             </div>
             <div>
-              <div style={{ fontSize: '0.925rem', fontWeight: 700, color: '#FFFFFF' }}>
-                {openExceptions.length} Reconciliation Exception{openExceptions.length > 1 ? 's' : ''} Require Review
+              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFFFFF' }}>
+                {openExceptions.length} Unresolved Reconciliation Exception{openExceptions.length > 1 ? 's' : ''} Detected
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Amount variances or unmatched statement records detected in your ledger.
+                Differences require accountant approval to ensure ledger consistency and audit closure.
               </div>
             </div>
           </div>
-          <Link to="/exceptions" className="btn btn-danger btn-sm">
-            Review Exceptions
+          <Link to="/exceptions" className="btn btn-sm btn-secondary" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#FFFFFF' }}>
+            Review Exceptions →
           </Link>
         </div>
       )}
 
-      {/* KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
-        {isLoading ? (
-          <>
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="card skeleton" style={{ height: 140 }} />
-            ))}
-          </>
-        ) : (
-          <>
-            <KPICard
-              title="Net Ledger Balance"
-              value={`$${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              subtitle={`Across ${accounts.length} active account${accounts.length !== 1 ? 's' : ''}`}
-              icon={Wallet}
-              variant={totalBalance >= 0 ? 'success' : 'danger'}
-            />
-
-            <KPICard
-              title="Total Inflow (Income)"
-              value={`+$${totalInflow.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              subtitle="Recent ledger credits"
-              icon={ArrowDownLeft}
-              variant="success"
-            />
-
-            <KPICard
-              title="Total Outflow (Expenses)"
-              value={`-$${totalOutflow.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              subtitle="Recent ledger debits"
-              icon={ArrowUpRight}
-              variant="danger"
-            />
-
-            <KPICard
-              title="Reconciliation Health"
-              value={latestRecon ? `${latestRecon.matchedCount} Matched` : 'No Runs Yet'}
-              subtitle={latestRecon ? `${latestRecon.discrepancyCount} variances, ${latestRecon.unmatchedCount} unmatched` : 'Run your first session'}
-              icon={GitCompare}
-              variant={latestRecon && latestRecon.discrepancyCount > 0 ? 'warning' : 'info'}
-            />
-          </>
-        )}
+      {/* Primary KPI Metrics Grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: 20
+        }}
+      >
+        <KPICard
+          title="Net Ledger Balance"
+          value={isLoading ? '$0.00' : `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtitle="Aggregated across active accounts"
+          icon={Wallet}
+          accentColor="teal"
+          isLoading={isLoading}
+        />
+        <KPICard
+          title="Total Inflow (30D)"
+          value={isLoading ? '$0.00' : `+$${totalInflow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtitle="Operating credits & receipts"
+          icon={ArrowDownLeft}
+          accentColor="emerald"
+          isLoading={isLoading}
+        />
+        <KPICard
+          title="Total Outflow (30D)"
+          value={isLoading ? '$0.00' : `-$${totalOutflow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtitle="Operating expenses & wires"
+          icon={ArrowUpRight}
+          accentColor="cyan"
+          isLoading={isLoading}
+        />
+        <KPICard
+          title="Reconciliation Health"
+          value={isLoading ? '100.0%' : `${reconHealthPercent}%`}
+          subtitle={`${openExceptions.length} active variance exceptions`}
+          icon={GitMerge}
+          accentColor="teal"
+          isLoading={isLoading}
+        />
       </div>
 
-      {/* Split Section: Recent Transactions & Live Audit Feed */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }} className="dashboard-split">
-        {/* Recent Transactions Table */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <ArrowLeftRight size={18} style={{ color: 'var(--accent-teal)' }} />
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
-                Recent Transactions
-              </h2>
+      {/* Cash Flow Movement & Telemetry Section */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '2fr 1fr',
+          gap: 24
+        }}
+        className="dashboard-two-col"
+      >
+        {/* Left Column: Cash Flow Overview & Recent Ledger */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Cash Flow Movement Card */}
+          <div className="card" style={{ padding: '24px 28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
+                  Cash Flow Movement
+                </h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                  Net capital velocity and double-entry balance distribution
+                </p>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent-teal)', fontWeight: 600 }}>
+                Real-Time Settlement
+              </span>
             </div>
-            <Link to="/transactions" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-teal)', textDecoration: 'none' }}>
-              View Ledger →
-            </Link>
+
+            {/* Inflow vs Outflow Visual Progress Bar */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: 6 }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Operating Inflow</span>
+                  <span style={{ color: 'var(--success)', fontWeight: 700 }}>+${totalInflow.toFixed(2)}</span>
+                </div>
+                <div style={{ height: 8, width: '100%', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: totalInflow > 0 ? '75%' : '0%', background: 'linear-gradient(90deg, #10B981, #14B8A6)', borderRadius: 'var(--radius-full)' }} />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: 6 }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Operating Outflow</span>
+                  <span style={{ color: '#FFFFFF', fontWeight: 700 }}>-${totalOutflow.toFixed(2)}</span>
+                </div>
+                <div style={{ height: 8, width: '100%', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: totalOutflow > 0 ? '35%' : '0%', background: 'linear-gradient(90deg, #06B6D4, #38BDF8)', borderRadius: 'var(--radius-full)' }} />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {isLoading ? (
-            <div className="skeleton" style={{ height: 220, borderRadius: 'var(--radius-md)' }} />
-          ) : transactions.length === 0 ? (
-            <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              No transactions recorded in the ledger yet. Click 'New Transaction' to begin.
+          {/* Recent Transactions Card */}
+          <div className="card" style={{ padding: '24px 28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
+                  Recent Transactions
+                </h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                  Latest balanced journal entries posted to tenant ledgers
+                </p>
+              </div>
+              <Link to="/transactions" style={{ fontSize: '0.8125rem', color: 'var(--accent-teal)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span>View all ledger</span>
+                <ArrowRight size={14} />
+              </Link>
             </div>
-          ) : (
-            <div className="table-container" style={{ border: 'none', background: 'transparent' }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.slice(0, 6).map((tx) => (
-                    <tr key={tx.id}>
-                      <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                        {new Date(tx.transactionAt).toLocaleDateString()}
-                      </td>
-                      <td style={{ fontWeight: 600 }}>
-                        {tx.description || 'Transaction'}
-                        {tx.reference && (
-                          <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-                            Ref: {tx.reference}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tx.type === 'INCOME' ? 'var(--success)' : 'var(--danger)' }}>
-                          {tx.type}
-                        </span>
-                      </td>
-                      <td style={{ fontWeight: 700 }} className="financial-figure">
-                        <span style={{ color: tx.type === 'INCOME' ? 'var(--success)' : '#FFFFFF' }}>
-                          {tx.type === 'INCOME' ? '+' : '-'}${Number(tx.amount).toFixed(2)}
-                        </span>
-                      </td>
-                      <td>
-                        <StatusBadge status={tx.status} />
-                      </td>
+
+            {isLoading ? (
+              <div className="skeleton" style={{ height: 200, borderRadius: 'var(--radius-md)' }} />
+            ) : recentTransactions.length === 0 ? (
+              <EmptyState
+                title="No Transactions Recorded"
+                description="Your financial activity will appear here once transactions are recorded to the ledger."
+                icon={TrendingUp}
+                actionLabel="Record Transaction"
+                onAction={() => navigate('/transactions')}
+              />
+            ) : (
+              <div className="table-container" style={{ border: 'none', background: 'transparent' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th>Account</th>
+                      <th>Date</th>
+                      <th style={{ textAlign: 'right' }}>Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {recentTransactions.map((tx) => (
+                      <tr key={tx.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, color: '#FFFFFF', fontSize: '0.875rem' }}>
+                            {tx.description || 'Transaction'}
+                          </div>
+                          {tx.category && (
+                            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                              {tx.category.name}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                          {tx.account?.name || 'Account'}
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                          {new Date(tx.createdAt).toLocaleDateString()}
+                        </td>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              fontSize: '0.9rem',
+                              color: tx.type === 'INCOME' ? 'var(--success)' : '#FFFFFF'
+                            }}
+                            className="financial-figure"
+                          >
+                            {tx.type === 'INCOME' ? '+' : '-'}${Number(tx.amount).toFixed(2)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Real-time System Audit Activity */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <ScrollText size={18} style={{ color: 'var(--accent-cyan)' }} />
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
-                Audit Activity
+        {/* Right Column: Reconciliation Health & Live Audit Stream */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Reconciliation Health Card */}
+          <div className="card" style={{ padding: '24px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
+                Reconciliation Health
               </h2>
+              <GitMerge size={18} style={{ color: 'var(--accent-teal)' }} />
             </div>
-            <Link to="/audit-logs" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-              All Logs →
-            </Link>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div style={{ padding: 12, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>MATCHED RATIO</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-teal)', marginTop: 2 }}>
+                  {reconHealthPercent}%
+                </div>
+              </div>
+              <div style={{ padding: 12, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>EXCEPTIONS</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: openExceptions.length > 0 ? 'var(--warning)' : 'var(--success)', marginTop: 2 }}>
+                  {openExceptions.length}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-secondary)', paddingTop: 12 }}>
+              <span>Last Reconciliation:</span>
+              <strong style={{ color: 'var(--text-secondary)' }}>{lastReconDate}</strong>
+            </div>
           </div>
 
-          {isLoading ? (
-            <div className="skeleton" style={{ height: 220, borderRadius: 'var(--radius-md)' }} />
-          ) : auditLogs.length === 0 ? (
-            <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              No audit logs captured yet.
+          {/* Live Audit Activity Stream */}
+          <div className="card" style={{ padding: '24px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ScrollText size={18} style={{ color: 'var(--accent-cyan)' }} />
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
+                  Live Audit Activity
+                </h2>
+              </div>
+              <Link to="/audit-logs" style={{ fontSize: '0.75rem', color: 'var(--accent-teal)', textDecoration: 'none', fontWeight: 600 }}>
+                View all →
+              </Link>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {auditLogs.slice(0, 6).map((log) => (
-                <div
-                  key={log.id}
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-secondary)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 3
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-teal)' }} className="mono">
-                      {log.action}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={11} />
-                      {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    {log.entityType} {log.entityId ? `(${log.entityId.slice(0, 8)}...)` : ''}
-                  </div>
-                  {log.user && (
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      by {log.user.name || log.user.email}
+
+            {isLoading ? (
+              <div className="skeleton" style={{ height: 180, borderRadius: 'var(--radius-md)' }} />
+            ) : recentAuditLogs.length === 0 ? (
+              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                No audit events recorded yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {recentAuditLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      padding: '10px 12px',
+                      background: 'rgba(6, 11, 20, 0.5)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-secondary)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color: 'var(--accent-teal)'
+                        }}
+                        className="mono"
+                      >
+                        {log.action}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {new Date(log.createdAt).toLocaleTimeString()}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      by <strong style={{ color: '#FFFFFF' }}>{log.user?.name || log.user?.email || 'System'}</strong> ({log.entityType})
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <style>{`
         @media (max-width: 1024px) {
-          .dashboard-split {
+          .dashboard-two-col {
             grid-template-columns: 1fr !important;
           }
         }

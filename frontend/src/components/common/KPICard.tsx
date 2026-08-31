@@ -7,7 +7,9 @@ interface KPICardProps {
   subtitle?: string;
   icon: LucideIcon;
   variant?: 'primary' | 'success' | 'danger' | 'warning' | 'info';
+  accentColor?: 'teal' | 'emerald' | 'cyan' | 'amber';
   trend?: string;
+  isLoading?: boolean;
 }
 
 export const KPICard: React.FC<KPICardProps> = ({
@@ -16,61 +18,79 @@ export const KPICard: React.FC<KPICardProps> = ({
   subtitle,
   icon: Icon,
   variant = 'primary',
-  trend
+  accentColor = 'teal',
+  trend,
+  isLoading
 }) => {
-  const getIconColor = () => {
-    switch (variant) {
-      case 'success': return 'var(--success)';
-      case 'danger': return 'var(--danger)';
-      case 'warning': return 'var(--warning)';
-      case 'info': return 'var(--info)';
-      default: return 'var(--accent-primary)';
+  const getColor = () => {
+    switch (accentColor) {
+      case 'emerald': return { color: 'var(--success)', bg: 'var(--success-bg)', border: 'var(--success-border)' };
+      case 'cyan': return { color: 'var(--accent-cyan)', bg: 'rgba(6, 182, 212, 0.1)', border: 'var(--border-cyan)' };
+      case 'amber': return { color: 'var(--warning)', bg: 'var(--warning-bg)', border: 'var(--warning-border)' };
+      default: return { color: 'var(--accent-teal)', bg: 'rgba(20, 184, 166, 0.1)', border: 'var(--border-accent)' };
     }
   };
 
-  const getIconBg = () => {
-    switch (variant) {
-      case 'success': return 'var(--success-bg)';
-      case 'danger': return 'var(--danger-bg)';
-      case 'warning': return 'var(--warning-bg)';
-      case 'info': return 'var(--info-bg)';
-      default: return 'var(--accent-primary-glow)';
-    }
-  };
+  const scheme = getColor();
+
+  if (isLoading) {
+    return <div className="card skeleton" style={{ height: 130, borderRadius: 'var(--radius-lg)' }} />;
+  }
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div
+      className="card card-hover"
+      style={{
+        padding: '20px 22px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        background: 'var(--bg-card)'
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {title}
+        </span>
         <div
           style={{
-            width: 38,
-            height: 38,
+            width: 36,
+            height: 36,
             borderRadius: 'var(--radius-md)',
-            background: getIconBg(),
-            color: getIconColor(),
+            background: scheme.bg,
+            color: scheme.color,
+            border: `1px solid ${scheme.border}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
-          <Icon size={20} />
+          <Icon size={18} />
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }} className="financial-figure">
+      <div style={{ marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span
+          style={{
+            fontSize: '1.65rem',
+            fontWeight: 800,
+            color: '#FFFFFF',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1
+          }}
+          className="financial-figure"
+        >
           {value}
         </span>
         {trend && (
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: variant === 'danger' ? 'var(--danger)' : 'var(--success)' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success)' }}>
             {trend}
           </span>
         )}
       </div>
 
       {subtitle && (
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
           {subtitle}
         </span>
       )}
