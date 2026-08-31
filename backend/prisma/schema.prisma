@@ -14,7 +14,13 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   users         User[]
+  accounts      Account[]
+  categories    Category[]
+  merchants     Merchant[]
+  transactions  Transaction[]
   ledgerEntries LedgerEntry[]
+  reconciliations Reconciliation[]
+  reconciliationItems ReconciliationItem[]
 }
 
 model User {
@@ -30,28 +36,138 @@ model User {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 }
 
+model Account {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  type      String   @default("BANK") // BANK, CREDIT, CASH
+  currency  String   @default("USD")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant        Tenant           @relation(fields: [tenantId], references: [id])
+  transactions  Transaction[]
+  ledgerEntries LedgerEntry[]
+  reconciliations Reconciliation[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  type      String   @default("EXPENSE") // INCOME, EXPENSE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  transactions Transaction[]
+}
+
+model Merchant {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  transactions Transaction[]
+}
+
 model Transaction {
   id            String   @id @default(uuid())
-  reference     String?  @unique
+  tenantId      String
+  accountId     String
+  categoryId    String?
+  merchantId    String?
+  
   amount        Decimal
   currency      String   @default("USD")
-  status        String   @default("PENDING")
-  source        String?
+  type          String   @default("EXPENSE") // INCOME, EXPENSE, TRANSFER
+  description   String?
+  reference     String?  @unique
+  status        String   @default("PENDING") // PENDING, COMPLETED, FAILED, RECONCILED
+  
   transactionAt DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  account      Account       @relation(fields: [accountId], references: [id])
+  category     Category?     @relation(fields: [categoryId], references: [id])
+  merchant     Merchant?     @relation(fields: [merchantId], references: [id])
+  ledgerEntries LedgerEntry[]
+  reconciliationItems ReconciliationItem[]
 }
 
 model LedgerEntry {
   id            String   @id @default(uuid())
   tenantId      String
   accountId     String
+  transactionId String
   amount        Decimal
   currency      String   @default("USD")
   entryType     String   // CREDIT or DEBIT
-  reference     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  account     Account     @relation(fields: [accountId], references: [id])
+  transaction Transaction @relation(fields: [transactionId], references: [id])
 }
+
+model Reconciliation {
+  id                String   @id @default(uuid())
+  tenantId          String
+  accountId         String
+  status            String   @default("COMPLETED") // PENDING, PROCESSING, COMPLETED, FAILED
+  
+  startDate         DateTime?
+  endDate           DateTime?
+  
+  totalInternal     Int      @default(0)
+  totalExternal     Int      @default(0)
+  matchedCount      Int      @default(0)
+  unmatchedCount    Int      @default(0)
+  discrepancyCount  Int      @default(0)
+  
+  matchedAmount     Decimal  @default(0)
+  discrepancyAmount Decimal  @default(0)
+  
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant  Tenant               @relation(fields: [tenantId], references: [id])
+  account Account              @relation(fields: [accountId], references: [id])
+  items   ReconciliationItem[]
+}
+
+model ReconciliationItem {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  reconciliationId    String
+  transactionId       String?
+  
+  externalReference   String?
+  externalAmount      Decimal?
+  externalDate        DateTime?
+  externalDescription String?
+  
+  internalAmount      Decimal?
+  
+  matchType           String   @default("EXACT") // EXACT, FUZZY, MANUAL, DISCREPANCY, UNMATCHED
+  status              String   @default("MATCHED") // MATCHED, UNMATCHED, DISCREPANT, RESOLVED
+  
+  discrepancyReason   String?
+  discrepancyAmount   Decimal?
+  confidenceScore     Decimal?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  reconciliation Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  transaction    Transaction?   @relation(fields: [transactionId], references: [id])
+}
+
