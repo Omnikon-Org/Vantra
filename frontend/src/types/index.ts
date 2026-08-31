@@ -125,6 +125,47 @@ export interface ReconciliationException {
   resolvedBy?: { id: string; email: string; name: string | null; role?: string } | null;
 }
 
+export interface RuleResult {
+  ruleId: string;
+  name: string;
+  triggered: boolean;
+  score: number;
+  reason?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface FraudAlert {
+  id: string;
+  tenantId: string;
+  transactionId: string;
+  riskScore: number;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'OPEN' | 'IN_REVIEW' | 'CONFIRMED' | 'DISMISSED' | 'RESOLVED';
+  reasons: string[];
+  ruleResults: Record<string, RuleResult>;
+  reviewedAt: string | null;
+  reviewedById: string | null;
+  reviewNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  transaction?: Transaction | null;
+  reviewedBy?: { id: string; email: string; name: string | null; role?: string } | null;
+}
+
+export interface FraudStats {
+  totalAlerts: number;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  openCount: number;
+  inReviewCount: number;
+  confirmedCount: number;
+  dismissedCount: number;
+  resolvedCount: number;
+  avgRiskScore: number;
+}
+
 export interface AuditLog {
   id: string;
   tenantId: string;

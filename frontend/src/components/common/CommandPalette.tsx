@@ -7,6 +7,7 @@ import {
   ArrowLeftRight,
   GitMerge,
   AlertOctagon,
+  ShieldAlert,
   ScrollText,
   PlusCircle,
   Play,
@@ -83,6 +84,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       action: () => { navigate('/exceptions'); onClose(); }
     },
     {
+      id: 'nav-fraud',
+      title: 'Open Fraud Detection Center',
+      subtitle: 'Monitor suspicious transactions and risk scores',
+      icon: ShieldAlert,
+      category: 'Navigation',
+      action: () => { navigate('/fraud'); onClose(); }
+    },
+    {
       id: 'nav-audit',
       title: 'Inspect System Audit Logs',
       subtitle: 'Immutable compliance trail and event metadata',
@@ -112,6 +121,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         navigate('/reconciliation');
         onClose();
         if (onOpenRunRecon) onOpenRunRecon();
+      }
+    },
+    {
+      id: 'act-run-fraud-scan',
+      title: 'Execute Fraud Risk Scan',
+      subtitle: 'Run rule-based anomaly detection on transactions',
+      icon: ShieldAlert,
+      category: 'Actions',
+      action: () => {
+        navigate('/fraud');
+        onClose();
       }
     }
   ];
@@ -201,7 +221,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Type a command or jump to page (e.g. 'Reconciliation', 'Transactions')..."
+            placeholder="Type a command or jump to page (e.g. 'Fraud', 'Reconciliation', 'Transactions')..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}

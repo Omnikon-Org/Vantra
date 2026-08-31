@@ -10,6 +10,7 @@ import { AccountsPage } from '../pages/AccountsPage';
 import { TransactionsPage } from '../pages/TransactionsPage';
 import { ReconciliationPage } from '../pages/ReconciliationPage';
 import { ExceptionsPage } from '../pages/ExceptionsPage';
+import { FraudCenterPage } from '../pages/FraudCenterPage';
 import { AuditLogsPage } from '../pages/AuditLogsPage';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
@@ -87,6 +88,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="transactions" element={<TransactionsPage />} />
         <Route path="reconciliation" element={<ReconciliationPage />} />
         <Route path="exceptions" element={<ExceptionsPage />} />
+        <Route path="fraud" element={<FraudCenterPage />} />
         <Route path="audit-logs" element={<AuditLogsPage />} />
       </Route>
 

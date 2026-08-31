@@ -8,6 +8,7 @@ import {
   ArrowLeftRight,
   GitMerge,
   AlertOctagon,
+  ShieldAlert,
   ScrollText,
   LogOut,
   ShieldCheck,
@@ -43,6 +44,7 @@ export const AppLayout: React.FC = () => {
     { label: 'Transactions', path: '/transactions', icon: ArrowLeftRight },
     { label: 'Reconciliation', path: '/reconciliation', icon: GitMerge },
     { label: 'Exceptions', path: '/exceptions', icon: AlertOctagon },
+    { label: 'Fraud Detection', path: '/fraud', icon: ShieldAlert },
     { label: 'Audit Logs', path: '/audit-logs', icon: ScrollText },
   ];
 

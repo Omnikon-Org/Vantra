@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { accountsApi, transactionsApi, reconciliationApi, exceptionsApi, auditLogsApi } from '../api/client';
-import { Account, Transaction, Reconciliation, ReconciliationException, AuditLog } from '../types';
+import { accountsApi, transactionsApi, reconciliationApi, exceptionsApi, auditLogsApi, fraudApi } from '../api/client';
+import { Account, Transaction, Reconciliation, ReconciliationException, AuditLog, FraudStats } from '../types';
 import { KPICard } from '../components/common/KPICard';
 import { StatusBadge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
@@ -16,6 +16,8 @@ import {
   TrendingUp,
   Clock,
   Shield,
+  ShieldAlert,
+  Flame,
   PlusCircle,
   Play,
   Building2,
@@ -33,6 +35,7 @@ export const DashboardPage: React.FC = () => {
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
   const [openExceptions, setOpenExceptions] = useState<ReconciliationException[]>([]);
   const [recentAuditLogs, setRecentAuditLogs] = useState<AuditLog[]>([]);
+  const [fraudStats, setFraudStats] = useState<FraudStats | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Time-based Greeting
@@ -47,12 +50,13 @@ export const DashboardPage: React.FC = () => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        const [accRes, txRes, reconRes, excRes, auditRes] = await Promise.all([
+        const [accRes, txRes, reconRes, excRes, auditRes, fraudRes] = await Promise.all([
           accountsApi.list(),
           transactionsApi.list({ limit: 6 }),
           reconciliationApi.list({ limit: 5 }),
           exceptionsApi.list({ status: 'OPEN', limit: 5 }),
-          auditLogsApi.list({ limit: 5 })
+          auditLogsApi.list({ limit: 5 }),
+          fraudApi.getStats()
         ]);
 
         setAccounts(accRes.accounts || []);
@@ -60,6 +64,7 @@ export const DashboardPage: React.FC = () => {
         setReconciliations(reconRes.reconciliations || []);
         setOpenExceptions(excRes.exceptions || []);
         setRecentAuditLogs(auditRes.auditLogs || []);
+        setFraudStats(fraudRes.stats || null);
       } catch (err) {
         console.error('Failed to load dashboard telemetry:', err);
       } finally {
@@ -117,7 +122,7 @@ export const DashboardPage: React.FC = () => {
             </span>
           </div>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            Institutional command center — double-entry ledgers, automated reconciliation, and compliance telemetry
+            Institutional command center — double-entry ledgers, automated reconciliation, and fraud risk telemetry
           </p>
         </div>
 
@@ -134,8 +139,53 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Critical Fraud Risk Alert Banner */}
+      {fraudStats && (fraudStats.criticalCount > 0 || fraudStats.highCount > 0) && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.16) 0%, rgba(245, 158, 11, 0.16) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '14px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(239, 68, 68, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--danger)'
+              }}
+            >
+              <ShieldAlert size={22} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFFFFF' }}>
+                {fraudStats.criticalCount + fraudStats.highCount} High/Critical Fraud Risk Alert{fraudStats.criticalCount + fraudStats.highCount > 1 ? 's' : ''} Detected
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                {fraudStats.criticalCount} Critical and {fraudStats.highCount} High-risk anomalies require immediate officer review.
+              </div>
+            </div>
+          </div>
+          <Link to="/fraud" className="btn btn-sm btn-danger">
+            View Fraud Center →
+          </Link>
+        </div>
+      )}
+
       {/* Discrepancy Exception Alert Banner */}
-      {openExceptions.length > 0 && (
+      {openExceptions.length > 0 && (!fraudStats || (fraudStats.criticalCount === 0 && fraudStats.highCount === 0)) && (
         <div
           style={{
             background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(239, 68, 68, 0.12) 100%)',
@@ -350,41 +400,84 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Reconciliation Health & Live Audit Stream */}
+        {/* Right Column: Fraud Risk Telemetry, Reconciliation Health & Live Audit Stream */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Fraud Risk Telemetry Widget */}
+          <div className="card" style={{ padding: '22px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ShieldAlert size={18} style={{ color: 'var(--danger)' }} />
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
+                  Fraud Risk Telemetry
+                </h2>
+              </div>
+              <Link to="/fraud" style={{ fontSize: '0.75rem', color: 'var(--accent-teal)', textDecoration: 'none', fontWeight: 600 }}>
+                Fraud Center →
+              </Link>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+              <div style={{ padding: '10px 8px', background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>CRITICAL</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (fraudStats?.criticalCount || 0) > 0 ? 'var(--danger)' : '#FFFFFF', marginTop: 2 }}>
+                  {fraudStats?.criticalCount || 0}
+                </div>
+              </div>
+              <div style={{ padding: '10px 8px', background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>HIGH</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (fraudStats?.highCount || 0) > 0 ? '#F97316' : '#FFFFFF', marginTop: 2 }}>
+                  {fraudStats?.highCount || 0}
+                </div>
+              </div>
+              <div style={{ padding: '10px 8px', background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>MEDIUM</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (fraudStats?.mediumCount || 0) > 0 ? 'var(--warning)' : '#FFFFFF', marginTop: 2 }}>
+                  {fraudStats?.mediumCount || 0}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-secondary)', paddingTop: 10 }}>
+              <span>Total Open Alerts:</span>
+              <strong style={{ color: (fraudStats?.openCount || 0) > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                {fraudStats?.openCount || 0} alerts
+              </strong>
+            </div>
+          </div>
+
           {/* Reconciliation Health Card */}
-          <div className="card" style={{ padding: '24px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div className="card" style={{ padding: '22px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
                 Reconciliation Health
               </h2>
               <GitMerge size={18} style={{ color: 'var(--accent-teal)' }} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div style={{ padding: 12, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>MATCHED RATIO</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-teal)', marginTop: 2 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+              <div style={{ padding: 10, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
+                <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>MATCHED RATIO</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-teal)', marginTop: 2 }}>
                   {reconHealthPercent}%
                 </div>
               </div>
-              <div style={{ padding: 12, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>EXCEPTIONS</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: openExceptions.length > 0 ? 'var(--warning)' : 'var(--success)', marginTop: 2 }}>
+              <div style={{ padding: 10, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
+                <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>EXCEPTIONS</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: openExceptions.length > 0 ? 'var(--warning)' : 'var(--success)', marginTop: 2 }}>
                   {openExceptions.length}
                 </div>
               </div>
             </div>
 
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-secondary)', paddingTop: 12 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-secondary)', paddingTop: 10 }}>
               <span>Last Reconciliation:</span>
               <strong style={{ color: 'var(--text-secondary)' }}>{lastReconDate}</strong>
             </div>
           </div>
 
           {/* Live Audit Activity Stream */}
-          <div className="card" style={{ padding: '24px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div className="card" style={{ padding: '22px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <ScrollText size={18} style={{ color: 'var(--accent-cyan)' }} />
                 <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
@@ -397,13 +490,13 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {isLoading ? (
-              <div className="skeleton" style={{ height: 180, borderRadius: 'var(--radius-md)' }} />
+              <div className="skeleton" style={{ height: 160, borderRadius: 'var(--radius-md)' }} />
             ) : recentAuditLogs.length === 0 ? (
-              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                 No audit events recorded yet.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {recentAuditLogs.map((log) => (
                   <div
                     key={log.id}

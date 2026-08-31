@@ -20,13 +20,13 @@ export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   if (['COMPLETED', 'MATCHED', 'RESOLVED', 'EXACT'].includes(normalized)) {
     return <Badge variant="success">{status}</Badge>;
   }
-  if (['FAILED', 'DISCREPANT', 'DISCREPANCY', 'CRITICAL', 'HIGH'].includes(normalized)) {
+  if (['FAILED', 'DISCREPANT', 'DISCREPANCY', 'CRITICAL', 'CONFIRMED'].includes(normalized)) {
     return <Badge variant="danger">{status}</Badge>;
   }
-  if (['PENDING', 'IN_REVIEW', 'MEDIUM', 'FUZZY', 'UNMATCHED'].includes(normalized)) {
+  if (['HIGH', 'MEDIUM', 'WARNING', 'FUZZY', 'UNMATCHED', 'OPEN'].includes(normalized)) {
     return <Badge variant="warning">{status}</Badge>;
   }
-  if (['RECONCILED', 'MANUAL', 'BANK', 'LOW', 'OPEN'].includes(normalized)) {
+  if (['PENDING', 'IN_REVIEW', 'RECONCILED', 'MANUAL', 'BANK', 'LOW'].includes(normalized)) {
     return <Badge variant="info">{status}</Badge>;
   }
   return <Badge variant="neutral">{status}</Badge>;

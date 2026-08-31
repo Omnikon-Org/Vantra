@@ -6,7 +6,9 @@ import {
   Merchant,
   Reconciliation,
   ReconciliationException,
-  AuditLog
+  AuditLog,
+  FraudAlert,
+  FraudStats
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -162,3 +164,22 @@ export const auditLogsApi = {
   list: (params?: { page?: number; limit?: number; action?: string; entityType?: string; startDate?: string; endDate?: string }) =>
     api.get<{ success: boolean; auditLogs: AuditLog[]; total: number; page: number; limit: number }>('/audit-logs', params),
 };
+
+// Fraud Detection API
+export const fraudApi = {
+  listAlerts: (params?: { page?: number; limit?: number; status?: string; severity?: string; startDate?: string; endDate?: string }) =>
+    api.get<{ success: boolean; alerts: FraudAlert[]; total: number; page: number; limit: number }>('/fraud/alerts', params),
+  getAlertById: (id: string) =>
+    api.get<{ success: boolean; alert: FraudAlert }>(`/fraud/alerts/${id}`),
+  analyzeTransaction: (transactionId: string) =>
+    api.post<{ success: boolean; transactionId: string; riskScore: number; severity: string; reasons: string[]; ruleResults: any; alert: FraudAlert | null }>(`/fraud/analyze/${transactionId}`),
+  analyzeBatch: (transactionIds?: string[]) =>
+    api.post<{ success: boolean; analyzedCount: number; alertsCreated: number; results: any[] }>('/fraud/analyze', { transactionIds }),
+  reviewAlert: (id: string, data?: { notes?: string }) =>
+    api.post<{ success: boolean; alert: FraudAlert; message: string }>(`/fraud/alerts/${id}/review`, data || {}),
+  resolveAlert: (id: string, data: { status: 'CONFIRMED' | 'DISMISSED' | 'RESOLVED'; resolutionNotes: string }) =>
+    api.post<{ success: boolean; alert: FraudAlert; message: string }>(`/fraud/alerts/${id}/resolve`, data),
+  getStats: () =>
+    api.get<{ success: boolean; stats: FraudStats }>('/fraud/stats'),
+};
+
