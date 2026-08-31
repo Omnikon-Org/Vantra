@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (data: { email: string; password: string }) => Promise<void>;
   register: (data: { email: string; password: string; name?: string; tenantName?: string }) => Promise<void>;
+  loginWithToken: (token: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -57,6 +58,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('vantra_user', JSON.stringify(res.user));
   };
 
+  const loginWithToken = async (newToken: string) => {
+    setToken(newToken);
+    localStorage.setItem('vantra_token', newToken);
+    try {
+      const res = await authApi.getMe();
+      setUser(res.user);
+      localStorage.setItem('vantra_user', JSON.stringify(res.user));
+    } catch (err) {
+      logout();
+      throw err;
+    }
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -83,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        loginWithToken,
         logout,
         refreshUser,
       }}

@@ -214,12 +214,49 @@ cd backend
 
 ---
 
+## 🔑 Google OAuth Setup (Google Cloud Console)
+
+Follow these steps to configure Google OAuth 2.0 / OpenID Connect for Vantra:
+
+1. **Open Google Cloud Console**: Navigate to [https://console.cloud.google.com/](https://console.cloud.google.com/).
+2. **Create/Select a Project**: Create a new project (e.g. `Vantra-Financial-Platform`) or select an existing one.
+3. **Configure OAuth Consent Screen**:
+   - Go to **APIs & Services** $\rightarrow$ **OAuth consent screen**.
+   - Select **External** (or Internal for Google Workspace organizations).
+   - Enter App Name (`Vantra`), User support email, and Developer contact information.
+   - Add scopes: `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`.
+   - Save and proceed.
+4. **Create OAuth Client ID**:
+   - Go to **APIs & Services** $\rightarrow$ **Credentials** $\rightarrow$ **Create Credentials** $\rightarrow$ **OAuth Client ID**.
+   - Application type: **Web application**.
+   - Name: `Vantra Web Client`.
+5. **Add Authorized JavaScript Origins**:
+   - **Development**: `http://localhost:3000`
+   - **Production**: `https://your-domain.com`
+6. **Add Authorized Redirect URIs**:
+   - **Development**: `http://localhost:5001/api/auth/google/callback`
+   - **Production**: `https://api.your-domain.com/api/auth/google/callback`
+7. **Copy Credentials**:
+   - Copy the generated **Client ID** and **Client Secret**.
+8. **Configure Backend Environment**:
+   - In `backend/.env`, add:
+     ```env
+     GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+     GOOGLE_CLIENT_SECRET=your_google_client_secret
+     GOOGLE_CALLBACK_URL=http://localhost:5001/api/auth/google/callback
+     FRONTEND_URL=http://localhost:3000
+     ```
+
+---
+
 ## 📡 API Reference Overview
 
 | Endpoint | Method | Auth | Description |
 | :--- | :---: | :---: | :--- |
 | `/api/auth/register` | `POST` | Public | Register new organization tenant & admin user |
 | `/api/auth/login` | `POST` | Public | Authenticate user & receive JWT token |
+| `/api/auth/google` | `GET` | Public | Initiate Google OAuth 2.0 redirect flow |
+| `/api/auth/google/callback` | `GET` | Public | Handle Google OAuth callback & redirect to frontend |
 | `/api/auth/me` | `GET` | Bearer | Get authenticated user context |
 | `/api/accounts` | `GET` | Bearer | List tenant accounts with computed balances |
 | `/api/accounts` | `POST` | Bearer | Create operating bank, credit, or cash account |
@@ -241,6 +278,7 @@ cd backend
 - **Append-Only Immutability**: No `UPDATE` or `DELETE` endpoints exist for audit logs.
 - **Secret Redaction**: Passwords, authorization headers, and API keys are automatically stripped from audit metadata payloads.
 - **Double-Entry Enforcement**: Transactions enforce matching debit/credit ledger records to prevent ungrounded balance creations.
+- **Cryptographic OAuth Protection**: Secure server-side identity verification and CSRF state token protection.
 
 ---
 

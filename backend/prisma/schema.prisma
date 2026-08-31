@@ -28,9 +28,11 @@ model Tenant {
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
-  passwordHash String
+  passwordHash String?
   name         String?
   role         String   @default("MEMBER")
+  googleId     String?  @unique
+  authProvider String   @default("LOCAL")
   tenantId     String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
