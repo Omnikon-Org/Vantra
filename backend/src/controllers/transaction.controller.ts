@@ -6,8 +6,9 @@ import { z } from 'zod';
 export const createTransaction = async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
+    const userId = req.user?.userId;
     const data = createTransactionSchema.parse(req.body);
-    const transaction = await TransactionService.create(tenantId, data);
+    const transaction = await TransactionService.create(tenantId, data, userId);
     res.status(201).json({ success: true, transaction });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -43,8 +44,9 @@ export const getTransaction = async (req: Request, res: Response) => {
 export const updateTransaction = async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
+    const userId = req.user?.userId;
     const data = updateTransactionSchema.parse(req.body);
-    const transaction = await TransactionService.update(tenantId, req.params.id as string, data);
+    const transaction = await TransactionService.update(tenantId, req.params.id as string, data, userId);
     res.status(200).json({ success: true, transaction });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -59,7 +61,8 @@ export const updateTransaction = async (req: Request, res: Response) => {
 export const deleteTransaction = async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
-    await TransactionService.delete(tenantId, req.params.id as string);
+    const userId = req.user?.userId;
+    await TransactionService.delete(tenantId, req.params.id as string, userId);
     res.status(200).json({ success: true, message: 'Transaction deleted' });
   } catch (error: any) {
     const status = error.statusCode || 400;

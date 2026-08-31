@@ -6,6 +6,8 @@ import categoryRoutes from './routes/category.routes';
 import merchantRoutes from './routes/merchant.routes';
 import transactionRoutes from './routes/transaction.routes';
 import reconciliationRoutes from './routes/reconciliation.routes';
+import auditRoutes from './routes/audit.routes';
+import exceptionRoutes from './routes/exception.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 const app: Application = express();
@@ -21,6 +23,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/merchants', merchantRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/reconciliation', reconciliationRoutes);
+app.use('/api/audit-logs', auditRoutes);
+app.use('/api/exceptions', exceptionRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

@@ -21,6 +21,8 @@ model Tenant {
   ledgerEntries LedgerEntry[]
   reconciliations Reconciliation[]
   reconciliationItems ReconciliationItem[]
+  auditLogs           AuditLog[]
+  exceptions          ReconciliationException[]
 }
 
 model User {
@@ -33,7 +35,9 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant             Tenant                    @relation(fields: [tenantId], references: [id])
+  auditLogs          AuditLog[]
+  resolvedExceptions ReconciliationException[] @relation("ResolvedByUser")
 }
 
 model Account {
@@ -92,12 +96,13 @@ model Transaction {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  account      Account       @relation(fields: [accountId], references: [id])
-  category     Category?     @relation(fields: [categoryId], references: [id])
-  merchant     Merchant?     @relation(fields: [merchantId], references: [id])
-  ledgerEntries LedgerEntry[]
+  tenant              Tenant                    @relation(fields: [tenantId], references: [id])
+  account             Account                   @relation(fields: [accountId], references: [id])
+  category            Category?                 @relation(fields: [categoryId], references: [id])
+  merchant            Merchant?                 @relation(fields: [merchantId], references: [id])
+  ledgerEntries       LedgerEntry[]
   reconciliationItems ReconciliationItem[]
+  exceptions          ReconciliationException[]
 }
 
 model LedgerEntry {
@@ -138,9 +143,10 @@ model Reconciliation {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  tenant  Tenant               @relation(fields: [tenantId], references: [id])
-  account Account              @relation(fields: [accountId], references: [id])
-  items   ReconciliationItem[]
+  tenant     Tenant                    @relation(fields: [tenantId], references: [id])
+  account    Account                   @relation(fields: [accountId], references: [id])
+  items      ReconciliationItem[]
+  exceptions ReconciliationException[]
 }
 
 model ReconciliationItem {
@@ -166,8 +172,50 @@ model ReconciliationItem {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  tenant         Tenant         @relation(fields: [tenantId], references: [id])
-  reconciliation Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
-  transaction    Transaction?   @relation(fields: [transactionId], references: [id])
+  tenant         Tenant                    @relation(fields: [tenantId], references: [id])
+  reconciliation Reconciliation            @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  transaction    Transaction?              @relation(fields: [transactionId], references: [id])
+  exceptions     ReconciliationException[]
 }
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  userId     String?
+  action     String   // e.g. ACCOUNT_CREATED, TRANSACTION_CREATED, RECONCILIATION_CREATED, EXCEPTION_RESOLVED
+  entityType String   // e.g. Account, Transaction, Reconciliation, ReconciliationItem, ReconciliationException
+  entityId   String?
+  metadata   Json?    // Non-sensitive context and audit metadata
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+}
+
+model ReconciliationException {
+  id                   String    @id @default(uuid())
+  tenantId             String
+  reconciliationId     String
+  reconciliationItemId String?
+  transactionId        String?
+  
+  exceptionType        String    // AMOUNT_MISMATCH, UNMATCHED_EXTERNAL, UNMATCHED_INTERNAL, DESCRIPTION_MISMATCH
+  severity             String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status               String    @default("OPEN")   // OPEN, IN_REVIEW, RESOLVED
+  description          String
+  
+  resolutionNotes      String?
+  resolvedAt           DateTime?
+  resolvedById         String?
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  reconciliation     Reconciliation      @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  reconciliationItem ReconciliationItem? @relation(fields: [reconciliationItemId], references: [id], onDelete: SetNull)
+  transaction        Transaction?        @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  resolvedBy         User?               @relation("ResolvedByUser", fields: [resolvedById], references: [id])
+}
+
 

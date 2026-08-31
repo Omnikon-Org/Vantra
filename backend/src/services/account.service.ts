@@ -2,19 +2,36 @@ import prisma from '../config/db';
 import { z } from 'zod';
 import { createAccountSchema, updateAccountSchema } from '../validators/account.validator';
 import { CustomError } from '../middleware/error.middleware';
+import { AuditService } from './audit.service';
+import { Prisma } from '@prisma/client';
 
 export class AccountService {
-  static async create(tenantId: string, data: z.infer<typeof createAccountSchema>) {
-    return prisma.account.create({
-      data: {
-        ...data,
-        tenantId
-      }
+  static async create(tenantId: string, data: z.infer<typeof createAccountSchema>, userId?: string) {
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const account = await tx.account.create({
+        data: {
+          ...data,
+          tenantId
+        }
+      });
+
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'ACCOUNT_CREATED',
+          entityType: 'Account',
+          entityId: account.id,
+          metadata: { name: account.name, type: account.type, currency: account.currency }
+        },
+        tx
+      );
+
+      return account;
     });
   }
 
   static async list(tenantId: string) {
-    // Dynamic balance calculation is done by aggregating ledger entries
     const accounts = await prisma.account.findMany({
       where: { tenantId },
       orderBy: { name: 'asc' },
@@ -31,7 +48,6 @@ export class AccountService {
     return accounts.map(acc => {
       let balance = 0;
       acc.ledgerEntries.forEach(entry => {
-        // CREDIT adds to balance, DEBIT subtracts from balance
         if (entry.entryType === 'CREDIT') {
           balance += Number(entry.amount);
         } else if (entry.entryType === 'DEBIT') {
@@ -76,8 +92,7 @@ export class AccountService {
     return { ...rest, balance };
   }
 
-  static async update(tenantId: string, id: string, data: z.infer<typeof updateAccountSchema>) {
-    // Check isolation
+  static async update(tenantId: string, id: string, data: z.infer<typeof updateAccountSchema>, userId?: string) {
     const existing = await prisma.account.findUnique({ where: { id } });
     if (!existing || existing.tenantId !== tenantId) {
       const error: CustomError = new Error('Account not found');
@@ -85,13 +100,29 @@ export class AccountService {
       throw error;
     }
 
-    return prisma.account.update({
-      where: { id },
-      data
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const updated = await tx.account.update({
+        where: { id },
+        data
+      });
+
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'ACCOUNT_UPDATED',
+          entityType: 'Account',
+          entityId: id,
+          metadata: { changes: data }
+        },
+        tx
+      );
+
+      return updated;
     });
   }
 
-  static async delete(tenantId: string, id: string) {
+  static async delete(tenantId: string, id: string, userId?: string) {
     const existing = await prisma.account.findUnique({ where: { id } });
     if (!existing || existing.tenantId !== tenantId) {
       const error: CustomError = new Error('Account not found');
@@ -99,7 +130,6 @@ export class AccountService {
       throw error;
     }
 
-    // Ensure no transactions exist
     const txCount = await prisma.transaction.count({ where: { accountId: id } });
     if (txCount > 0) {
        const error: CustomError = new Error('Cannot delete account with existing transactions');
@@ -107,7 +137,22 @@ export class AccountService {
        throw error;
     }
 
-    await prisma.account.delete({ where: { id } });
-    return { success: true };
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.account.delete({ where: { id } });
+
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'ACCOUNT_DELETED',
+          entityType: 'Account',
+          entityId: id,
+          metadata: { name: existing.name }
+        },
+        tx
+      );
+
+      return { success: true };
+    });
   }
 }

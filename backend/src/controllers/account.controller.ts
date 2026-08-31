@@ -6,15 +6,17 @@ import { z } from 'zod';
 export const createAccount = async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
+    const userId = req.user?.userId;
     const data = createAccountSchema.parse(req.body);
-    const account = await AccountService.create(tenantId, data);
+    const account = await AccountService.create(tenantId, data, userId);
     res.status(201).json({ success: true, account });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
        res.status(400).json({ success: false, errors: error.issues });
        return;
     }
-    res.status(400).json({ success: false, message: error.message });
+    const status = error.statusCode || 400;
+    res.status(status).json({ success: false, message: error.message });
   }
 };
 
@@ -42,8 +44,9 @@ export const getAccount = async (req: Request, res: Response) => {
 export const updateAccount = async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
+    const userId = req.user?.userId;
     const data = updateAccountSchema.parse(req.body);
-    const account = await AccountService.update(tenantId, req.params.id as string, data);
+    const account = await AccountService.update(tenantId, req.params.id as string, data, userId);
     res.status(200).json({ success: true, account });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -58,7 +61,8 @@ export const updateAccount = async (req: Request, res: Response) => {
 export const deleteAccount = async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
-    await AccountService.delete(tenantId, req.params.id as string);
+    const userId = req.user?.userId;
+    await AccountService.delete(tenantId, req.params.id as string, userId);
     res.status(200).json({ success: true, message: 'Account deleted' });
   } catch (error: any) {
     const status = error.statusCode || 400;

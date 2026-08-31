@@ -7,9 +7,10 @@ import {
 } from '../validators/reconciliation.validator';
 import { CustomError } from '../middleware/error.middleware';
 import { Prisma } from '@prisma/client';
+import { AuditService } from './audit.service';
 
 export class ReconciliationService {
-  static async run(tenantId: string, data: z.infer<typeof runReconciliationSchema>) {
+  static async run(tenantId: string, data: z.infer<typeof runReconciliationSchema>, userId?: string) {
     // 1. Verify account belongs to tenant
     const account = await prisma.account.findUnique({
       where: { id: data.accountId }
@@ -335,9 +336,9 @@ export class ReconciliationService {
         }
       });
 
-      // Create Reconciliation Items
+      // Create Reconciliation Items & Automated Exception Records
       for (const item of itemsToCreate) {
-        await tx.reconciliationItem.create({
+        const createdItem = await tx.reconciliationItem.create({
           data: {
             tenantId,
             reconciliationId: reconciliation.id,
@@ -354,6 +355,34 @@ export class ReconciliationService {
             confidenceScore: item.confidenceScore !== null ? new Prisma.Decimal(item.confidenceScore) : null
           }
         });
+
+        // If item is discrepant or unmatched, create ReconciliationException
+        if (item.status === 'DISCREPANT' || item.status === 'UNMATCHED') {
+          let exceptionType = 'AMOUNT_MISMATCH';
+          if (item.matchType === 'UNMATCHED') {
+            exceptionType = item.externalAmount !== null ? 'UNMATCHED_EXTERNAL' : 'UNMATCHED_INTERNAL';
+          } else if (item.discrepancyReason?.includes('Description')) {
+            exceptionType = 'DESCRIPTION_MISMATCH';
+          }
+
+          const amt = Number(item.discrepancyAmount || item.externalAmount || item.internalAmount || 0);
+          let severity = 'LOW';
+          if (amt >= 1000) severity = 'HIGH';
+          else if (amt >= 100) severity = 'MEDIUM';
+
+          await tx.reconciliationException.create({
+            data: {
+              tenantId,
+              reconciliationId: reconciliation.id,
+              reconciliationItemId: createdItem.id,
+              transactionId: item.transactionId,
+              exceptionType,
+              severity,
+              status: 'OPEN',
+              description: item.discrepancyReason || 'Reconciliation discrepancy detected'
+            }
+          });
+        }
       }
 
       // Auto update status on matched internal transactions
@@ -368,6 +397,24 @@ export class ReconciliationService {
           }
         });
       }
+
+      // Record Audit Log
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'RECONCILIATION_CREATED',
+          entityType: 'Reconciliation',
+          entityId: reconciliation.id,
+          metadata: {
+            accountId: data.accountId,
+            matchedCount: matchedItems.length,
+            discrepancyCount: discrepantItems.length,
+            unmatchedCount: unmatchedItems.length
+          }
+        },
+        tx
+      );
 
       // Return complete reconciliation record with items and relations
       return tx.reconciliation.findUnique({
@@ -457,7 +504,8 @@ export class ReconciliationService {
   static async manualMatch(
     tenantId: string,
     reconciliationId: string,
-    data: z.infer<typeof manualMatchSchema>
+    data: z.infer<typeof manualMatchSchema>,
+    userId?: string
   ) {
     const reconciliation = await prisma.reconciliation.findUnique({
       where: { id: reconciliationId }
@@ -507,6 +555,20 @@ export class ReconciliationService {
         data: { status: 'RECONCILED' }
       });
 
+      // Also resolve associated exception if any exists
+      await tx.reconciliationException.updateMany({
+        where: {
+          tenantId,
+          reconciliationItemId: data.reconciliationItemId
+        },
+        data: {
+          status: 'RESOLVED',
+          resolvedAt: new Date(),
+          resolvedById: userId || null,
+          resolutionNotes: data.notes || 'Manually matched'
+        }
+      });
+
       // Recalculate summary metrics on reconciliation
       const allItems = await tx.reconciliationItem.findMany({
         where: { reconciliationId }
@@ -525,6 +587,22 @@ export class ReconciliationService {
         }
       });
 
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'RECONCILIATION_MANUAL_MATCH',
+          entityType: 'ReconciliationItem',
+          entityId: data.reconciliationItemId,
+          metadata: {
+            reconciliationId,
+            transactionId: data.transactionId,
+            notes: data.notes || null
+          }
+        },
+        tx
+      );
+
       return updatedItem;
     });
   }
@@ -532,7 +610,8 @@ export class ReconciliationService {
   static async resolveDiscrepancy(
     tenantId: string,
     reconciliationId: string,
-    data: z.infer<typeof resolveDiscrepancySchema>
+    data: z.infer<typeof resolveDiscrepancySchema>,
+    userId?: string
   ) {
     const reconciliation = await prisma.reconciliation.findUnique({
       where: { id: reconciliationId }
@@ -563,6 +642,20 @@ export class ReconciliationService {
         }
       });
 
+      // Also resolve associated exception if any exists
+      await tx.reconciliationException.updateMany({
+        where: {
+          tenantId,
+          reconciliationItemId: data.itemId
+        },
+        data: {
+          status: 'RESOLVED',
+          resolvedAt: new Date(),
+          resolvedById: userId || null,
+          resolutionNotes: `Resolved (${data.resolution}): ${data.notes || 'No notes provided'}`
+        }
+      });
+
       // Recalculate summary metrics
       const allItems = await tx.reconciliationItem.findMany({
         where: { reconciliationId }
@@ -581,11 +674,27 @@ export class ReconciliationService {
         }
       });
 
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'RECONCILIATION_DISCREPANCY_RESOLVED',
+          entityType: 'ReconciliationItem',
+          entityId: data.itemId,
+          metadata: {
+            reconciliationId,
+            resolution: data.resolution,
+            notes: data.notes || null
+          }
+        },
+        tx
+      );
+
       return updatedItem;
     });
   }
 
-  static async delete(tenantId: string, id: string) {
+  static async delete(tenantId: string, id: string, userId?: string) {
     const existing = await prisma.reconciliation.findUnique({ where: { id } });
     if (!existing || existing.tenantId !== tenantId) {
       const error: CustomError = new Error('Reconciliation record not found');
@@ -593,7 +702,23 @@ export class ReconciliationService {
       throw error;
     }
 
-    await prisma.reconciliation.delete({ where: { id } });
-    return { success: true, message: 'Reconciliation record deleted' };
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.reconciliation.delete({ where: { id } });
+
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'RECONCILIATION_DELETED',
+          entityType: 'Reconciliation',
+          entityId: id,
+          metadata: { accountId: existing.accountId }
+        },
+        tx
+      );
+
+      return { success: true, message: 'Reconciliation record deleted' };
+    });
   }
 }
+

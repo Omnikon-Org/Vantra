@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { createTransactionSchema, updateTransactionSchema } from '../validators/transaction.validator';
 import { CustomError } from '../middleware/error.middleware';
 import { Prisma } from '@prisma/client';
+import { AuditService } from './audit.service';
 
 export class TransactionService {
-  static async create(tenantId: string, data: z.infer<typeof createTransactionSchema>) {
+  static async create(tenantId: string, data: z.infer<typeof createTransactionSchema>, userId?: string) {
     // 1. Verify account belongs to tenant
     const account = await prisma.account.findUnique({ where: { id: data.accountId } });
     if (!account || account.tenantId !== tenantId) {
@@ -42,6 +43,24 @@ export class TransactionService {
           entryType
         }
       });
+
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'TRANSACTION_CREATED',
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          metadata: {
+            accountId: data.accountId,
+            amount: data.amount,
+            type: data.type,
+            currency: data.currency,
+            description: data.description
+          }
+        },
+        tx
+      );
 
       return transaction;
     });
@@ -101,7 +120,7 @@ export class TransactionService {
     return transaction;
   }
 
-  static async update(tenantId: string, id: string, data: z.infer<typeof updateTransactionSchema>) {
+  static async update(tenantId: string, id: string, data: z.infer<typeof updateTransactionSchema>, userId?: string) {
     const existing = await prisma.transaction.findUnique({ where: { id } });
     if (!existing || existing.tenantId !== tenantId) {
       const error: CustomError = new Error('Transaction not found');
@@ -109,13 +128,29 @@ export class TransactionService {
       throw error;
     }
 
-    return prisma.transaction.update({
-      where: { id },
-      data
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const updated = await tx.transaction.update({
+        where: { id },
+        data
+      });
+
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'TRANSACTION_UPDATED',
+          entityType: 'Transaction',
+          entityId: id,
+          metadata: { changes: data }
+        },
+        tx
+      );
+
+      return updated;
     });
   }
 
-  static async delete(tenantId: string, id: string) {
+  static async delete(tenantId: string, id: string, userId?: string) {
     const existing = await prisma.transaction.findUnique({ where: { id } });
     if (!existing || existing.tenantId !== tenantId) {
       const error: CustomError = new Error('Transaction not found');
@@ -123,11 +158,23 @@ export class TransactionService {
       throw error;
     }
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.ledgerEntry.deleteMany({ where: { transactionId: id } });
       await tx.transaction.delete({ where: { id } });
-    });
 
-    return { success: true };
+      await AuditService.log(
+        {
+          tenantId,
+          userId,
+          action: 'TRANSACTION_DELETED',
+          entityType: 'Transaction',
+          entityId: id,
+          metadata: { amount: Number(existing.amount), description: existing.description }
+        },
+        tx
+      );
+
+      return { success: true };
+    });
   }
 }
