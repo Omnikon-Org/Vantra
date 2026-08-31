@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![Vantra Banner](https://raw.githubusercontent.com/vantra-org/brand-assets/main/banner.png)
-
 **A secure, multi-tenant financial infrastructure platform designed for transaction management, automated 5-pass reconciliation, variance exception resolution, and immutable audit compliance.**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
