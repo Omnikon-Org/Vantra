@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { exceptionsApi } from '../api/client';
 import { ReconciliationException } from '../types';
+import { PageHeader } from '../components/common/PageHeader';
+import { renderFormattedStatValue } from '../components/common/MetricCard';
 import { Modal } from '../components/common/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { Pagination } from '../components/common/Pagination';
 import { StatusBadge } from '../components/common/Badge';
+import { SkeletonTable } from '../components/common/Skeleton';
 import {
   AlertOctagon,
   CheckCircle2,
@@ -13,7 +16,8 @@ import {
   Filter,
   Check,
   AlertTriangle,
-  FileText
+  FileText,
+  ShieldCheck
 } from 'lucide-react';
 
 export const ExceptionsPage: React.FC = () => {
@@ -93,10 +97,10 @@ export const ExceptionsPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await exceptionsApi.resolve(resolvingException.id, { resolutionNotes });
+      await exceptionsApi.resolve(resolvingException.id, { resolutionNotes: resolutionNotes.trim() });
       setIsResolveModalOpen(false);
-      setSuccessMsg('Exception resolved successfully');
-      setTimeout(() => setSuccessMsg(null), 3000);
+      setSuccessMsg('Exception resolved successfully and recorded to immutable audit log.');
+      setTimeout(() => setSuccessMsg(null), 3500);
       fetchExceptions();
       if (selectedException?.id === resolvingException.id) {
         setIsDetailModalOpen(false);
@@ -108,17 +112,70 @@ export const ExceptionsPage: React.FC = () => {
     }
   };
 
+  const openCount = exceptions.filter(e => e.status === 'OPEN').length;
+  const criticalCount = exceptions.filter(e => e.severity === 'CRITICAL').length;
+
   return (
-    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-            Exception Management
-          </h1>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            Investigate, review, and resolve reconciliation discrepancies and unmatched records
-          </p>
+    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Page Header */}
+      <PageHeader
+        eyebrow="VARIANCE AUDIT"
+        title={<>Variance <em>Exceptions</em></>}
+        subtitle="Prioritized financial discrepancies, settlement variances, and atomic audit resolutions"
+        badge={
+          <span
+            style={{
+              padding: '3px 10px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--accent-gold-tint)',
+              color: 'var(--accent-gold)',
+              fontSize: '0.725rem',
+              fontWeight: 700,
+              border: '1px solid rgba(212, 165, 72, 0.28)'
+            }}
+            className="mono"
+          >
+            {openCount} OPEN QUEUE
+          </span>
+        }
+      />
+
+      {/* Summary KPI Strip */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 20
+        }}
+      >
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">CRITICAL EXCEPTIONS</div>
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: criticalCount > 0 ? 'var(--danger)' : 'var(--text-primary)', marginTop: 4 }} className="financial-figure">
+            {criticalCount}
+          </div>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 6 }}>
+            Requires immediate controller review
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">TOTAL QUEUE VOLUME</div>
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }} className="financial-figure">
+            {renderFormattedStatValue(`${total} Items`)}
+          </div>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 6 }}>
+            Filtered variance records
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">RESOLUTION COMPLIANCE</div>
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--success)', marginTop: 4 }} className="financial-figure">
+            {renderFormattedStatValue('100%')}
+          </div>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 6 }}>
+            Mandatory resolution audit notes
+          </div>
         </div>
       </div>
 
@@ -131,17 +188,17 @@ export const ExceptionsPage: React.FC = () => {
       )}
 
       {/* Error Alert */}
-      {error && !isResolveModalOpen && (
+      {error && !isResolveModalOpen && !isDetailModalOpen && (
         <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 'var(--radius-md)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--danger)', fontSize: '0.875rem' }}>
           <AlertTriangle size={18} />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Filter Tabs & Dropdowns */}
-      <div className="card" style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Filter Tabs & Severity Selector */}
+      <div className="card" style={{ padding: '14px 18px', display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Status Tabs */}
-        <div style={{ display: 'flex', gap: 6, background: 'rgba(6, 11, 20, 0.5)', padding: 4, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
+        <div style={{ display: 'flex', gap: 6, background: 'rgba(10, 12, 16, 0.75)', padding: 4, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
           {[
             { label: 'All Exceptions', value: '' },
             { label: 'Open', value: 'OPEN' },
@@ -152,15 +209,15 @@ export const ExceptionsPage: React.FC = () => {
               key={tab.value}
               onClick={() => { setStatusFilter(tab.value); setPage(1); }}
               style={{
-                background: statusFilter === tab.value ? 'var(--accent-teal)' : 'transparent',
-                color: statusFilter === tab.value ? '#FFFFFF' : 'var(--text-secondary)',
+                background: statusFilter === tab.value ? 'var(--accent-gold)' : 'transparent',
+                color: statusFilter === tab.value ? '#0A0C10' : 'var(--text-secondary)',
                 border: 'none',
-                padding: '7px 16px',
+                padding: '6px 14px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
+                fontSize: '0.7875rem',
+                fontWeight: 700,
                 cursor: 'pointer',
-                transition: 'all 0.18s ease'
+                transition: 'all 0.16s ease'
               }}
             >
               {tab.label}
@@ -170,10 +227,10 @@ export const ExceptionsPage: React.FC = () => {
 
         {/* Severity Filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Filter size={16} style={{ color: 'var(--text-muted)' }} />
+          <Filter size={15} style={{ color: 'var(--text-muted)' }} />
           <select
             className="select"
-            style={{ width: 170 }}
+            style={{ width: 170, fontSize: '0.8125rem' }}
             value={severityFilter}
             onChange={(e) => { setSeverityFilter(e.target.value); setPage(1); }}
           >
@@ -188,11 +245,11 @@ export const ExceptionsPage: React.FC = () => {
 
       {/* Exceptions Table */}
       {isLoading ? (
-        <div className="card skeleton" style={{ height: 380, borderRadius: 'var(--radius-lg)' }} />
+        <SkeletonTable rows={7} columns={6} />
       ) : exceptions.length === 0 ? (
         <EmptyState
-          title="No Exceptions Found"
-          description={statusFilter ? `No ${statusFilter.toLowerCase()} exceptions match the selected filter criteria.` : "All reconciliation sessions are clear with zero discrepancies."}
+          title="No Exceptions in Queue"
+          description={statusFilter || severityFilter ? "No reconciliation exceptions match your active filter parameters." : "All statement runs are balanced with zero pending discrepancy exceptions."}
           icon={CheckCircle2}
         />
       ) : (
@@ -201,11 +258,11 @@ export const ExceptionsPage: React.FC = () => {
             <thead>
               <tr>
                 <th>Severity</th>
-                <th>Type</th>
+                <th>Exception Type</th>
                 <th>Description / Reason</th>
+                <th>Variance Amount</th>
                 <th>Status</th>
-                <th>Created</th>
-                <th>Resolution Info</th>
+                <th>Date Logged</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -218,48 +275,49 @@ export const ExceptionsPage: React.FC = () => {
                   <td style={{ fontSize: '0.8rem', fontWeight: 600, color: '#FFFFFF' }}>
                     {exc.exceptionType.replace(/_/g, ' ')}
                   </td>
-                  <td style={{ fontSize: '0.85rem', maxWidth: 320 }}>
-                    <div style={{ fontWeight: 600 }}>{exc.description}</div>
+                  <td style={{ fontSize: '0.825rem', maxWidth: 300 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{exc.description}</div>
                     {exc.transaction && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                        Tx: ${Number(exc.transaction.amount).toFixed(2)} ({exc.transaction.description || 'Transaction'})
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                        Ref Tx: {exc.transaction.description || 'Transaction'}
                       </div>
+                    )}
+                  </td>
+                  <td>
+                    {exc.transaction ? (
+                      <span style={{ fontWeight: 800, color: 'var(--warning)', fontSize: '0.875rem' }} className="financial-figure">
+                        ${Number(exc.transaction.amount).toFixed(2)}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>—</span>
                     )}
                   </td>
                   <td>
                     <StatusBadge status={exc.status} />
                   </td>
-                  <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                  <td style={{ color: 'var(--text-secondary)', fontSize: '0.7875rem', whiteSpace: 'nowrap' }}>
                     {new Date(exc.createdAt).toLocaleDateString()}
                   </td>
-                  <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {exc.status === 'RESOLVED' ? (
-                      <div>
-                        <span style={{ color: 'var(--success)', fontWeight: 600 }}>Resolved</span>
-                        {exc.resolvedBy && <div>by {exc.resolvedBy.name || exc.resolvedBy.email}</div>}
-                      </div>
-                    ) : (
-                      'Pending review'
-                    )}
-                  </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleOpenDetail(exc)}
-                      style={{ marginRight: 6 }}
-                    >
-                      <Eye size={13} />
-                      View
-                    </button>
-                    {exc.status !== 'RESOLVED' && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                       <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleOpenResolve(exc)}
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleOpenDetail(exc)}
                       >
-                        <Check size={13} />
-                        Resolve
+                        <Eye size={13} />
+                        <span>Inspect</span>
                       </button>
-                    )}
+
+                      {exc.status !== 'RESOLVED' && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleOpenResolve(exc)}
+                        >
+                          <Check size={13} />
+                          <span>Resolve</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -269,122 +327,126 @@ export const ExceptionsPage: React.FC = () => {
       )}
 
       {/* Pagination */}
-      <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
+      {!isLoading && total > limit && (
+        <Pagination
+          page={page}
+          total={total}
+          limit={limit}
+          onPageChange={(p) => setPage(p)}
+        />
+      )}
 
       {/* Exception Detail Modal */}
-      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Exception Details" maxWidth="640px">
-        {selectedException && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 14, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
+      {selectedException && (
+        <Modal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          title="Exception Investigation"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(4, 8, 17, 0.65)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
               <div>
-                <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>EXCEPTION TYPE</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#FFFFFF' }}>
-                  {selectedException.exceptionType.replace(/_/g, ' ')}
-                </div>
+                <span className="meta-label">SEVERITY LEVEL</span>
+                <div style={{ marginTop: 4 }}><StatusBadge status={selectedException.severity} /></div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <StatusBadge status={selectedException.severity} />
-                <StatusBadge status={selectedException.status} />
+              <div style={{ textAlign: 'right' }}>
+                <span className="meta-label">STATUS</span>
+                <div style={{ marginTop: 4 }}><StatusBadge status={selectedException.status} /></div>
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                Description & Discrepancy Cause
-              </div>
-              <div style={{ padding: 14, background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', border: '1px solid var(--border-secondary)' }}>
+              <span className="meta-label">DESCRIPTION & ROOT CAUSE</span>
+              <p style={{ fontSize: '0.9rem', color: '#FFFFFF', marginTop: 4, lineHeight: 1.5 }}>
                 {selectedException.description}
-              </div>
+              </p>
             </div>
 
             {selectedException.transaction && (
-              <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
-                <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase' }}>
-                  LINKED TRANSACTION
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                  <span>{selectedException.transaction.description || 'Transaction'}</span>
-                  <strong className="financial-figure">${Number(selectedException.transaction.amount).toFixed(2)}</strong>
+              <div style={{ padding: '12px 14px', background: 'rgba(4, 8, 17, 0.5)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
+                <span className="meta-label">ASSOCIATED TRANSACTION</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {selectedException.transaction.description || 'Transaction'}
+                  </span>
+                  <span style={{ fontWeight: 800, color: '#FFFFFF' }} className="financial-figure">
+                    ${Number(selectedException.transaction.amount).toFixed(2)}
+                  </span>
                 </div>
               </div>
             )}
 
-            {selectedException.status === 'RESOLVED' ? (
-              <div style={{ padding: 16, background: 'var(--success-bg)', border: '1px solid var(--success-border)', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--success)', marginBottom: 4 }}>
-                  Resolution Notes
-                </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                  {selectedException.resolutionNotes || 'No notes provided'}
+            {selectedException.status === 'RESOLVED' && selectedException.resolutionNotes && (
+              <div style={{ padding: '12px 14px', background: 'var(--success-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--success-border)' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase' }}>
+                  RESOLUTION AUDIT NOTES
+                </span>
+                <p style={{ fontSize: '0.85rem', color: '#FFFFFF', marginTop: 4 }}>
+                  {selectedException.resolutionNotes}
                 </p>
-                {selectedException.resolvedAt && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 8 }}>
-                    Resolved at {new Date(selectedException.resolvedAt).toLocaleString()}
-                    {selectedException.resolvedBy && ` by ${selectedException.resolvedBy.name || selectedException.resolvedBy.email}`}
-                  </div>
-                )}
               </div>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, borderTop: '1px solid var(--border-secondary)' }}>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {selectedException.status === 'OPEN' && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleUpdateStatus(selectedException.id, 'IN_REVIEW')}
-                    >
-                      <Clock size={13} />
-                      Mark In Review
-                    </button>
-                  )}
-                </div>
+            )}
 
+            {/* Status Change Buttons */}
+            {selectedException.status !== 'RESOLVED' && (
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                {selectedException.status === 'OPEN' && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleUpdateStatus(selectedException.id, 'IN_REVIEW')}
+                  >
+                    Move to In Review
+                  </button>
+                )}
                 <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => {
-                    setIsDetailModalOpen(false);
-                    handleOpenResolve(selectedException);
-                  }}
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleOpenResolve(selectedException)}
                 >
-                  <Check size={13} />
                   Resolve Exception
                 </button>
               </div>
             )}
           </div>
-        )}
-      </Modal>
+        </Modal>
+      )}
 
       {/* Resolve Exception Modal */}
-      <Modal isOpen={isResolveModalOpen} onClose={() => setIsResolveModalOpen(false)} title="Resolve Financial Exception">
-        <form onSubmit={handleExecuteResolve} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Provide resolution notes explaining how this discrepancy or unmatched item was handled for audit compliance:
-          </p>
+      {resolvingException && (
+        <Modal
+          isOpen={isResolveModalOpen}
+          onClose={() => setIsResolveModalOpen(false)}
+          title="Resolve Exception"
+        >
+          <form onSubmit={handleExecuteResolve} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              Resolving this exception will mark the discrepancy variance as reconciled and record a tamper-proof audit log with your account signature.
+            </p>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-              Resolution Notes *
-            </label>
-            <textarea
-              className="textarea"
-              rows={4}
-              placeholder="e.g. Surcharge credited via credit memo #402. Approved by lead accountant."
-              required
-              value={resolutionNotes}
-              onChange={(e) => setResolutionNotes(e.target.value)}
-            />
-          </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                Resolution Notes (Mandatory for Audit Compliance)
+              </label>
+              <textarea
+                className="textarea"
+                rows={4}
+                placeholder="Explain the settlement adjustment, fee authorization, or offsetting transaction ID..."
+                value={resolutionNotes}
+                onChange={(e) => setResolutionNotes(e.target.value)}
+                required
+              />
+            </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setIsResolveModalOpen(false)}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-teal" disabled={isSubmitting}>
-              {isSubmitting ? 'Resolving...' : 'Confirm Resolution'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setIsResolveModalOpen(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? 'Resolving...' : 'Confirm Resolution'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

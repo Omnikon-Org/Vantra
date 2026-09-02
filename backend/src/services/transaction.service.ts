@@ -4,6 +4,7 @@ import { createTransactionSchema, updateTransactionSchema } from '../validators/
 import { CustomError } from '../middleware/error.middleware';
 import { Prisma } from '@prisma/client';
 import { AuditService } from './audit.service';
+import { FraudDetectionService } from './fraud.service';
 
 export class TransactionService {
   static async create(tenantId: string, data: z.infer<typeof createTransactionSchema>, userId?: string) {
@@ -18,8 +19,8 @@ export class TransactionService {
     // 2. Map type to ledger entry type (Income = CREDIT to account, Expense = DEBIT to account)
     const entryType = data.type === 'INCOME' ? 'CREDIT' : 'DEBIT';
 
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const transaction = await tx.transaction.create({
+    const transaction = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const createdTx = await tx.transaction.create({
         data: {
           tenantId,
           accountId: data.accountId,
@@ -37,7 +38,7 @@ export class TransactionService {
         data: {
           tenantId,
           accountId: data.accountId,
-          transactionId: transaction.id,
+          transactionId: createdTx.id,
           amount: data.amount,
           currency: data.currency,
           entryType
@@ -50,7 +51,7 @@ export class TransactionService {
           userId,
           action: 'TRANSACTION_CREATED',
           entityType: 'Transaction',
-          entityId: transaction.id,
+          entityId: createdTx.id,
           metadata: {
             accountId: data.accountId,
             amount: data.amount,
@@ -62,8 +63,17 @@ export class TransactionService {
         tx
       );
 
-      return transaction;
+      return createdTx;
     });
+
+    // Run non-blocking Fraud Analysis on newly created transaction
+    try {
+      await FraudDetectionService.analyzeTransaction(tenantId, transaction.id, userId);
+    } catch (fraudErr) {
+      console.error('Fraud analysis background evaluation warning:', fraudErr);
+    }
+
+    return transaction;
   }
 
   static async list(tenantId: string, query: Record<string, string | undefined>) {

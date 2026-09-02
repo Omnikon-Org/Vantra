@@ -13,16 +13,17 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users         User[]
-  accounts      Account[]
-  categories    Category[]
-  merchants     Merchant[]
-  transactions  Transaction[]
-  ledgerEntries LedgerEntry[]
-  reconciliations Reconciliation[]
+  users               User[]
+  accounts            Account[]
+  categories          Category[]
+  merchants           Merchant[]
+  transactions        Transaction[]
+  ledgerEntries       LedgerEntry[]
+  reconciliations     Reconciliation[]
   reconciliationItems ReconciliationItem[]
   auditLogs           AuditLog[]
   exceptions          ReconciliationException[]
+  fraudAlerts         FraudAlert[]
 }
 
 model User {
@@ -37,9 +38,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tenant             Tenant                    @relation(fields: [tenantId], references: [id])
-  auditLogs          AuditLog[]
-  resolvedExceptions ReconciliationException[] @relation("ResolvedByUser")
+  tenant              Tenant                    @relation(fields: [tenantId], references: [id])
+  auditLogs           AuditLog[]
+  resolvedExceptions  ReconciliationException[] @relation("ResolvedByUser")
+  reviewedFraudAlerts FraudAlert[]              @relation("ReviewedByUser")
 }
 
 model Account {
@@ -51,9 +53,9 @@ model Account {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant        Tenant           @relation(fields: [tenantId], references: [id])
-  transactions  Transaction[]
-  ledgerEntries LedgerEntry[]
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  transactions    Transaction[]
+  ledgerEntries   LedgerEntry[]
   reconciliations Reconciliation[]
 }
 
@@ -105,6 +107,7 @@ model Transaction {
   ledgerEntries       LedgerEntry[]
   reconciliationItems ReconciliationItem[]
   exceptions          ReconciliationException[]
+  fraudAlerts         FraudAlert[]
 }
 
 model LedgerEntry {
@@ -184,8 +187,8 @@ model AuditLog {
   id         String   @id @default(uuid())
   tenantId   String
   userId     String?
-  action     String   // e.g. ACCOUNT_CREATED, TRANSACTION_CREATED, RECONCILIATION_CREATED, EXCEPTION_RESOLVED
-  entityType String   // e.g. Account, Transaction, Reconciliation, ReconciliationItem, ReconciliationException
+  action     String   // e.g. ACCOUNT_CREATED, TRANSACTION_CREATED, RECONCILIATION_CREATED, EXCEPTION_RESOLVED, FRAUD_ALERT_CREATED
+  entityType String   // e.g. Account, Transaction, Reconciliation, ReconciliationItem, ReconciliationException, FraudAlert
   entityId   String?
   metadata   Json?    // Non-sensitive context and audit metadata
   createdAt  DateTime @default(now())
@@ -220,4 +223,30 @@ model ReconciliationException {
   resolvedBy         User?               @relation("ResolvedByUser", fields: [resolvedById], references: [id])
 }
 
+model FraudAlert {
+  id            String    @id @default(uuid())
+  tenantId      String
+  transactionId String
+  
+  riskScore     Int       // 0 to 100
+  severity      String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status        String    @default("OPEN")   // OPEN, IN_REVIEW, CONFIRMED, DISMISSED, RESOLVED
+  
+  reasons       String[]  // Human-readable explainable reasons
+  ruleResults   Json      // Detailed results for each evaluated rule
+  
+  reviewedAt    DateTime?
+  reviewedById  String?
+  reviewNotes   String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  reviewedBy  User?       @relation("ReviewedByUser", fields: [reviewedById], references: [id])
+
+  @@index([tenantId, status])
+  @@index([tenantId, severity])
+  @@index([transactionId])
+}

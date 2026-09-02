@@ -78,7 +78,14 @@ export const googleCallback = async (req: Request, res: Response) => {
     // Redirect to frontend with JWT token in query parameter
     res.redirect(`${frontendUrl}/login?token=${encodeURIComponent(result.token)}`);
   } catch (err: any) {
-    res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(err.message || 'Google authentication failed')}`);
+    console.error('Google callback error:', err);
+    let errorMessage = 'Google authentication failed';
+    if (err?.message?.includes("Can't reach database server")) {
+      errorMessage = 'Database server is unreachable. Please verify PostgreSQL is running on port 5434.';
+    } else if (err?.message && !err.message.includes('prisma.') && !err.message.includes('/')) {
+      errorMessage = err.message;
+    }
+    res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(errorMessage)}`);
   }
 };
 

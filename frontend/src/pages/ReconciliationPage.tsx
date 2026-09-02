@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { reconciliationApi, accountsApi, transactionsApi } from '../api/client';
 import { Reconciliation, ReconciliationItem, Account, Transaction } from '../types';
+import { PageHeader } from '../components/common/PageHeader';
+import { renderFormattedStatValue } from '../components/common/MetricCard';
 import { Modal } from '../components/common/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { Pagination } from '../components/common/Pagination';
@@ -256,69 +258,65 @@ export const ReconciliationPage: React.FC = () => {
 
   return (
     <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-            Reconciliation Engine
-          </h1>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            Multi-pass matching engine comparing internal ledger journals against banking statement feeds
-          </p>
-        </div>
-
-        <button className="btn btn-teal" onClick={handleOpenRunModal}>
-          <Play size={15} />
-          <span>Run Reconciliation</span>
-        </button>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        eyebrow="MATCHING PIPELINE"
+        title={<>Reconciliation <em>Engine</em></>}
+        subtitle="Match internal ledger records against external bank statements with automated multi-pass precision"
+        actions={
+          <button className="btn btn-primary" onClick={handleOpenRunModal}>
+            <Play size={15} />
+            <span>Run Reconciliation</span>
+          </button>
+        }
+      />
 
       {/* Top Metrics Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">
             RECONCILIATION HEALTH
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-teal)', marginTop: 4 }} className="financial-figure">
-            {aggregateHealth}%
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }} className="financial-figure">
+            {renderFormattedStatValue(`${aggregateHealth}%`)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', marginTop: 6 }}>
             Overall matched accuracy
           </div>
         </div>
 
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">
             MATCHED RECORDS
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--success)', marginTop: 4 }} className="financial-figure">
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--success)', marginTop: 4 }} className="financial-figure">
             {totalMatched}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', marginTop: 6 }}>
             Zero-variance items
           </div>
         </div>
 
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">
             EXCEPTIONS DETECTED
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: totalDiscrepancies > 0 ? 'var(--warning)' : '#FFFFFF', marginTop: 4 }} className="financial-figure">
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: totalDiscrepancies > 0 ? 'var(--warning)' : 'var(--text-primary)', marginTop: 4 }} className="financial-figure">
             {totalDiscrepancies}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', marginTop: 6 }}>
             Amount/timing variances
           </div>
         </div>
 
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">
             PENDING UNMATCHED
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: totalUnmatched > 0 ? 'var(--danger)' : '#FFFFFF', marginTop: 4 }} className="financial-figure">
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: totalUnmatched > 0 ? 'var(--danger)' : 'var(--text-primary)', marginTop: 4 }} className="financial-figure">
             {totalUnmatched}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', marginTop: 6 }}>
             Missing journal entries
           </div>
         </div>
@@ -329,7 +327,7 @@ export const ReconciliationPage: React.FC = () => {
         className="card"
         style={{
           padding: '18px 24px',
-          background: 'rgba(6, 11, 20, 0.6)',
+          background: 'rgba(10, 12, 16, 0.75)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -352,11 +350,11 @@ export const ReconciliationPage: React.FC = () => {
                   width: 22,
                   height: 22,
                   borderRadius: '50%',
-                  background: 'rgba(20, 184, 166, 0.15)',
-                  border: '1px solid var(--accent-teal)',
-                  color: 'var(--accent-teal)',
+                  background: 'var(--accent-gold-tint)',
+                  border: '1px solid var(--accent-gold)',
+                  color: 'var(--accent-gold)',
                   fontSize: '0.7rem',
-                  fontWeight: 800,
+                  fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -364,10 +362,10 @@ export const ReconciliationPage: React.FC = () => {
               >
                 {idx + 1}
               </div>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#FFFFFF' }}>{step}</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>{step}</span>
             </div>
             {idx < arr.length - 1 && (
-              <div style={{ width: 24, height: 1, background: 'var(--border-primary)', flexShrink: 0 }} />
+              <div style={{ width: 24, height: 1, background: 'var(--border-subtle)', flexShrink: 0 }} />
             )}
           </React.Fragment>
         ))}
@@ -393,8 +391,8 @@ export const ReconciliationPage: React.FC = () => {
         <div className="card skeleton" style={{ height: 380, borderRadius: 'var(--radius-lg)' }} />
       ) : reconciliations.length === 0 ? (
         <EmptyState
-          title="No Reconciliation Sessions"
-          description="Execute your first multi-pass reconciliation run to match external bank statements with internal journal entries."
+          title="No reconciliation sessions yet."
+          description="Run your first reconciliation to compare internal ledger records against external statement data."
           icon={GitMerge}
           actionLabel="Run Reconciliation"
           onAction={handleOpenRunModal}
@@ -567,7 +565,7 @@ export const ReconciliationPage: React.FC = () => {
             <button type="button" className="btn btn-secondary" onClick={() => setIsRunModalOpen(false)}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-teal" disabled={isSubmittingRun}>
+            <button type="submit" className="btn btn-primary" disabled={isSubmittingRun}>
               {isSubmittingRun ? 'Executing Matching Algorithm...' : 'Run Matching Engine'}
             </button>
           </div>
@@ -704,7 +702,7 @@ export const ReconciliationPage: React.FC = () => {
             <button type="button" className="btn btn-secondary" onClick={() => setIsManualModalOpen(false)}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-teal">
+            <button type="submit" className="btn btn-primary">
               Confirm Manual Match
             </button>
           </div>
@@ -736,7 +734,7 @@ export const ReconciliationPage: React.FC = () => {
             <button type="button" className="btn btn-secondary" onClick={() => setIsResolveModalOpen(false)}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-teal">
+            <button type="submit" className="btn btn-primary">
               Confirm Resolution
             </button>
           </div>

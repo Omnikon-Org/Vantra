@@ -1,5 +1,6 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
+import { renderFormattedStatValue } from './MetricCard';
 
 interface KPICardProps {
   title: string;
@@ -7,7 +8,7 @@ interface KPICardProps {
   subtitle?: string;
   icon: LucideIcon;
   variant?: 'primary' | 'success' | 'danger' | 'warning' | 'info';
-  accentColor?: 'teal' | 'emerald' | 'cyan' | 'amber';
+  accentColor?: 'gold' | 'blue' | 'violet' | 'teal' | 'emerald' | 'cyan' | 'amber' | 'red';
   trend?: string;
   isLoading?: boolean;
 }
@@ -18,38 +19,45 @@ export const KPICard: React.FC<KPICardProps> = ({
   subtitle,
   icon: Icon,
   variant = 'primary',
-  accentColor = 'teal',
+  accentColor = 'gold',
   trend,
   isLoading
 }) => {
   const getColor = () => {
     switch (accentColor) {
       case 'emerald': return { color: 'var(--success)', bg: 'var(--success-bg)', border: 'var(--success-border)' };
-      case 'cyan': return { color: 'var(--accent-cyan)', bg: 'rgba(6, 182, 212, 0.1)', border: 'var(--border-cyan)' };
       case 'amber': return { color: 'var(--warning)', bg: 'var(--warning-bg)', border: 'var(--warning-border)' };
-      default: return { color: 'var(--accent-teal)', bg: 'rgba(20, 184, 166, 0.1)', border: 'var(--border-accent)' };
+      case 'red': return { color: 'var(--danger)', bg: 'var(--danger-bg)', border: 'var(--danger-border)' };
+      case 'gold':
+      case 'blue':
+      case 'teal':
+      case 'cyan':
+      case 'violet':
+      default: return { color: 'var(--accent-gold)', bg: 'var(--accent-gold-tint)', border: 'rgba(212, 165, 72, 0.28)' };
     }
   };
 
   const scheme = getColor();
 
   if (isLoading) {
-    return <div className="card skeleton" style={{ height: 130, borderRadius: 'var(--radius-lg)' }} />;
+    return <div className="card skeleton" style={{ height: 150, borderRadius: 'var(--radius-xl)' }} />;
   }
 
   return (
     <div
       className="card card-hover"
       style={{
-        padding: '20px 22px',
+        padding: '24px 28px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        background: 'var(--bg-card)'
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-xl)'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <span className="meta-label">
           {title}
         </span>
         <div
@@ -69,18 +77,18 @@ export const KPICard: React.FC<KPICardProps> = ({
         </div>
       </div>
 
-      <div style={{ marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+      <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 8 }}>
         <span
           style={{
-            fontSize: '1.65rem',
+            fontSize: '2.25rem',
             fontWeight: 800,
-            color: '#FFFFFF',
-            letterSpacing: '-0.02em',
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.025em',
             lineHeight: 1.1
           }}
           className="financial-figure"
         >
-          {value}
+          {renderFormattedStatValue(value)}
         </span>
         {trend && (
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success)' }}>
@@ -90,7 +98,7 @@ export const KPICard: React.FC<KPICardProps> = ({
       </div>
 
       {subtitle && (
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+        <span style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', marginTop: 6 }}>
           {subtitle}
         </span>
       )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CommandPalette } from '../components/common/CommandPalette';
+import { exceptionsApi, fraudApi } from '../api/client';
 import {
   LayoutDashboard,
   Wallet,
@@ -16,8 +17,9 @@ import {
   X,
   Building2,
   Search,
-  Command,
-  ChevronDown
+  ChevronDown,
+  Activity,
+  UserCheck
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
@@ -25,6 +27,8 @@ export const AppLayout: React.FC = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [openExceptionsCount, setOpenExceptionsCount] = useState<number | null>(null);
+  const [openFraudCount, setOpenFraudCount] = useState<number | null>(null);
 
   // Global ⌘K / Ctrl+K shortcut listener
   useEffect(() => {
@@ -38,14 +42,65 @@ export const AppLayout: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const navItems = [
-    { label: 'Overview', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Accounts', path: '/accounts', icon: Wallet },
-    { label: 'Transactions', path: '/transactions', icon: ArrowLeftRight },
-    { label: 'Reconciliation', path: '/reconciliation', icon: GitMerge },
-    { label: 'Exceptions', path: '/exceptions', icon: AlertOctagon },
-    { label: 'Fraud Detection', path: '/fraud', icon: ShieldAlert },
-    { label: 'Audit Logs', path: '/audit-logs', icon: ScrollText },
+  // Fetch real contextual counts for sidebar badges
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBadgeCounts = async () => {
+      try {
+        const [excRes, fraudRes] = await Promise.all([
+          exceptionsApi.list({ status: 'OPEN', limit: 1 }).catch(() => null),
+          fraudApi.getStats().catch(() => null)
+        ]);
+
+        if (isMounted) {
+          if (excRes && typeof excRes.total === 'number') {
+            setOpenExceptionsCount(excRes.total);
+          }
+          if (fraudRes && fraudRes.stats && typeof fraudRes.stats.openCount === 'number') {
+            setOpenFraudCount(fraudRes.stats.openCount);
+          }
+        }
+      } catch {
+        // Silently preserve UI state
+      }
+    };
+
+    fetchBadgeCounts();
+    return () => { isMounted = false; };
+  }, []);
+
+  const navSections = [
+    {
+      group: 'OPERATIONS',
+      items: [
+        { label: 'Overview', path: '/dashboard', icon: LayoutDashboard },
+        { label: 'Accounts', path: '/accounts', icon: Wallet },
+        { label: 'Transactions', path: '/transactions', icon: ArrowLeftRight },
+        { label: 'Reconciliation', path: '/reconciliation', icon: GitMerge },
+      ]
+    },
+    {
+      group: 'INTELLIGENCE & AUDIT',
+      items: [
+        {
+          label: 'Exceptions',
+          path: '/exceptions',
+          icon: AlertOctagon,
+          badge: openExceptionsCount !== null && openExceptionsCount > 0 ? openExceptionsCount : undefined,
+          badgeColor: 'var(--warning)',
+          badgeBg: 'var(--warning-bg)'
+        },
+        {
+          label: 'Fraud Detection',
+          path: '/fraud',
+          icon: ShieldAlert,
+          badge: openFraudCount !== null && openFraudCount > 0 ? openFraudCount : undefined,
+          badgeColor: 'var(--danger)',
+          badgeBg: 'var(--danger-bg)'
+        },
+        { label: 'Audit Logs', path: '/audit-logs', icon: ScrollText },
+      ]
+    }
   ];
 
   const handleLogout = () => {
@@ -54,90 +109,92 @@ export const AppLayout: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
       {/* Global Command Palette */}
       <CommandPalette
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
       />
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Institutional Sidebar */}
       <aside
         style={{
-          width: 260,
-          background: 'var(--bg-secondary)',
-          borderRight: '1px solid var(--border-primary)',
+          width: 264,
+          background: 'var(--bg-surface)',
+          borderRight: '1px solid var(--border-subtle)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          padding: '24px 16px',
+          padding: '20px 14px',
           position: 'sticky',
           top: 0,
           height: '100vh',
-          zIndex: 40
+          zIndex: 40,
+          boxShadow: 'var(--shadow-sm)'
         }}
         className="desktop-sidebar"
       >
         <div>
           {/* Brand Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 8px 20px 8px', borderBottom: '1px solid var(--border-secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 16px 8px', borderBottom: '1px solid var(--border-subtle)' }}>
             <div
               style={{
-                width: 38,
-                height: 38,
+                width: 34,
+                height: 34,
                 borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)',
+                background: 'var(--accent-gold-gradient)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#FFFFFF',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+                color: '#0A0C10',
+                boxShadow: '0 4px 14px rgba(212, 165, 72, 0.35)',
+                flexShrink: 0
               }}
             >
-              <ShieldCheck size={22} />
+              <ShieldCheck size={20} />
             </div>
             <div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-primary)', lineHeight: 1.1 }}>
                 VANTRA
               </div>
-              <div style={{ fontSize: '0.675rem', fontWeight: 700, color: 'var(--accent-teal)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                FINTECH PLATFORM
+              <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
+                FINANCIAL PLATFORM
               </div>
             </div>
           </div>
 
-          {/* Tenant / Organization Pill */}
+          {/* Organization Switcher Pill */}
           <div
             style={{
-              margin: '16px 0',
-              padding: '10px 12px',
+              margin: '14px 0 16px 0',
+              padding: '9px 12px',
               borderRadius: 'var(--radius-md)',
-              background: 'rgba(6, 11, 20, 0.6)',
-              border: '1px solid var(--border-primary)',
+              background: 'rgba(10, 12, 16, 0.75)',
+              border: '1px solid var(--border-subtle)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               cursor: 'pointer',
-              transition: 'border-color 0.15s ease'
+              transition: 'all 0.16s ease'
             }}
             onClick={() => setCommandPaletteOpen(true)}
-            title="Switch Organization or search"
+            title="Switch Organization or Search Commands (⌘K)"
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-teal)', boxShadow: '0 0 8px var(--accent-teal)' }} />
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-gold)', boxShadow: '0 0 8px var(--accent-gold)' }} />
               <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.7875rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user?.tenant?.name || 'Vantra Organization'}
                 </div>
-                <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
                   Production Sandbox
                 </div>
               </div>
             </div>
-            <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           </div>
 
-          {/* Quick Search / ⌘K Trigger Button */}
+          {/* Quick Search Trigger */}
           <button
             onClick={() => setCommandPaletteOpen(true)}
             style={{
@@ -145,96 +202,144 @@ export const AppLayout: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '8px 12px',
+              padding: '7px 11px',
               borderRadius: 'var(--radius-md)',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-primary)',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--border-subtle)',
               color: 'var(--text-secondary)',
-              fontSize: '0.8rem',
+              fontSize: '0.775rem',
               cursor: 'pointer',
-              marginBottom: 20,
+              marginBottom: 16,
               transition: 'all 0.15s ease'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.3)'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(212, 165, 72, 0.35)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Search size={14} style={{ color: 'var(--accent-teal)' }} />
+              <Search size={13} style={{ color: 'var(--accent-gold)' }} />
               <span>Search commands...</span>
             </div>
             <span
               style={{
-                fontSize: '0.675rem',
-                padding: '2px 6px',
-                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.65rem',
+                padding: '1px 5px',
+                borderRadius: 'var(--radius-xs)',
                 background: 'rgba(255, 255, 255, 0.08)',
                 color: 'var(--text-muted)',
-                fontWeight: 600
+                fontWeight: 700
               }}
+              className="mono"
             >
               ⌘K
             </span>
           </button>
 
-          {/* Navigation Links */}
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  style={({ isActive }) => ({
+          {/* Grouped Navigation Links */}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {navSections.map((sec, sIdx) => (
+              <div key={sIdx}>
+                {/* Section Eyebrow with gold dot */}
+                <div
+                  style={{
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    padding: '0 10px',
+                    marginBottom: 7,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    fontSize: '0.875rem',
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
-                    background: isActive ? 'rgba(20, 184, 166, 0.12)' : 'transparent',
-                    border: isActive ? '1px solid rgba(20, 184, 166, 0.3)' : '1px solid transparent',
-                    boxShadow: isActive ? '0 0 16px rgba(20, 184, 166, 0.12)' : 'none',
-                    textDecoration: 'none',
-                    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
-                  })}
+                    gap: 6
+                  }}
                 >
-                  <Icon size={18} style={{ color: 'inherit' }} />
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
+                  <span style={{ color: 'var(--accent-gold)', fontSize: '0.55rem' }}>●</span>
+                  <span>{sec.group}</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {sec.items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        style={({ isActive }) => ({
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: '0.825rem',
+                          fontWeight: isActive ? 700 : 500,
+                          color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                          background: isActive ? 'var(--accent-gold-tint)' : 'transparent',
+                          borderLeft: isActive ? '3px solid var(--accent-gold)' : '3px solid transparent',
+                          textDecoration: 'none',
+                          transition: 'all 0.15s ease'
+                        })}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <Icon size={16} style={{ color: 'inherit', opacity: 0.95 }} />
+                          <span>{item.label}</span>
+                        </div>
+
+                        {/* Real-time Contextual Badge */}
+                        {item.badge !== undefined && (
+                          <span
+                            style={{
+                              fontSize: '0.675rem',
+                              fontWeight: 700,
+                              color: item.badgeColor || 'var(--warning)',
+                              background: item.badgeBg || 'var(--warning-bg)',
+                              padding: '1px 6px',
+                              borderRadius: 'var(--radius-full)',
+                              lineHeight: 1.2
+                            }}
+                            className="mono"
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
 
         {/* User Profile & Logout */}
-        <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 6px' }}>
+        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
               <div
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: 32,
+                  height: 32,
                   borderRadius: 'var(--radius-full)',
-                  background: 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)',
+                  background: 'var(--accent-gold-gradient)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  color: '#FFFFFF',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  color: '#0A0C10',
                   flexShrink: 0
                 }}
               >
                 {user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                   {user?.name || user?.email?.split('@')[0]}
                 </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--accent-teal)', fontWeight: 600 }}>
-                  {user?.role || 'MEMBER'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', fontWeight: 700 }} className="mono">
+                    {user?.role || 'ADMIN'}
+                  </span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>• Tenant</span>
                 </div>
               </div>
             </div>
@@ -245,7 +350,7 @@ export const AppLayout: React.FC = () => {
               style={{ padding: 6, borderRadius: 'var(--radius-sm)' }}
               title="Sign Out"
             >
-              <LogOut size={15} />
+              <LogOut size={14} />
             </button>
           </div>
         </div>
@@ -256,13 +361,13 @@ export const AppLayout: React.FC = () => {
         {/* Mobile Header Bar */}
         <header
           style={{
-            height: 60,
-            background: 'var(--bg-secondary)',
-            borderBottom: '1px solid var(--border-primary)',
+            height: 58,
+            background: 'var(--bg-surface)',
+            borderBottom: '1px solid var(--border-subtle)',
             display: 'none',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 20px',
+            padding: '0 18px',
             position: 'sticky',
             top: 0,
             zIndex: 30
@@ -272,19 +377,19 @@ export const AppLayout: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
-                width: 30,
-                height: 30,
+                width: 28,
+                height: 28,
                 borderRadius: 'var(--radius-sm)',
-                background: 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)',
+                background: 'var(--accent-gold-gradient)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#FFFFFF'
+                color: '#0A0C10'
               }}
             >
-              <ShieldCheck size={18} />
+              <ShieldCheck size={16} />
             </div>
-            <span style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+            <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
               VANTRA
             </span>
           </div>
@@ -293,16 +398,16 @@ export const AppLayout: React.FC = () => {
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => setCommandPaletteOpen(true)}
-              style={{ padding: '6px 10px' }}
+              style={{ padding: '5px 8px' }}
             >
-              <Search size={16} />
+              <Search size={15} />
             </button>
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              style={{ padding: '6px 10px' }}
+              style={{ padding: '5px 8px' }}
             >
-              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+              {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
             </button>
           </div>
         </header>
@@ -312,59 +417,98 @@ export const AppLayout: React.FC = () => {
           <div
             style={{
               position: 'fixed',
-              top: 60,
+              top: 58,
               left: 0,
               width: '100%',
-              height: 'calc(100vh - 60px)',
-              background: 'var(--bg-secondary)',
+              height: 'calc(100vh - 58px)',
+              background: 'var(--bg-surface)',
               zIndex: 35,
-              padding: 24,
+              padding: 20,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              borderBottom: '1px solid var(--border-primary)'
+              borderBottom: '1px solid var(--border-subtle)',
+              overflowY: 'auto'
             }}
             className="mobile-drawer"
           >
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    style={({ isActive }) => ({
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {navSections.map((sec, sIdx) => (
+                <div key={sIdx}>
+                  <div
+                    style={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      marginBottom: 8,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 12,
-                      padding: '12px 16px',
-                      borderRadius: 'var(--radius-md)',
-                      fontSize: '1rem',
-                      fontWeight: isActive ? 700 : 500,
-                      color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
-                      background: isActive ? 'rgba(20, 184, 166, 0.15)' : 'transparent',
-                      border: isActive ? '1px solid var(--accent-teal)' : '1px solid transparent',
-                      textDecoration: 'none'
-                    })}
+                      gap: 6
+                    }}
                   >
-                    <Icon size={20} />
-                    <span>{item.label}</span>
-                  </NavLink>
-                );
-              })}
+                    <span style={{ color: 'var(--accent-gold)', fontSize: '0.55rem' }}>●</span>
+                    <span>{sec.group}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {sec.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <NavLink
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setMobileMenuOpen(false)}
+                          style={({ isActive }) => ({
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '10px 14px',
+                            borderRadius: 'var(--radius-md)',
+                            fontSize: '0.925rem',
+                            fontWeight: isActive ? 700 : 500,
+                            color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                            background: isActive ? 'var(--accent-gold-tint)' : 'transparent',
+                            borderLeft: isActive ? '3px solid var(--accent-gold)' : '3px solid transparent',
+                            textDecoration: 'none'
+                          })}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <Icon size={18} />
+                            <span>{item.label}</span>
+                          </div>
+                          {item.badge !== undefined && (
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                color: item.badgeColor,
+                                background: item.badgeBg,
+                                padding: '2px 8px',
+                                borderRadius: 'var(--radius-full)'
+                              }}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </nav>
 
-            <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 18 }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
-                Signed in as <strong style={{ color: '#FFFFFF' }}>{user?.email}</strong>
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16 }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 10 }}>
+                Signed in as <strong style={{ color: 'var(--text-primary)' }}>{user?.email}</strong>
               </div>
               <button
                 onClick={handleLogout}
                 className="btn btn-danger"
                 style={{ width: '100%' }}
               >
-                <LogOut size={16} />
+                <LogOut size={15} />
                 Sign Out
               </button>
             </div>

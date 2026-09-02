@@ -1,20 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { accountsApi } from '../api/client';
 import { Account } from '../types';
+import { PageHeader } from '../components/common/PageHeader';
 import { Modal } from '../components/common/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { StatusBadge } from '../components/common/Badge';
+import { Skeleton } from '../components/common/Skeleton';
 import {
   Wallet,
   Plus,
-  Edit2,
-  Trash2,
-  AlertCircle,
   Building,
   CreditCard,
   Coins,
-  CheckCircle,
-  CheckCircle2
+  Edit2,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+  ArrowRight
 } from 'lucide-react';
 
 export const AccountsPage: React.FC = () => {
@@ -23,7 +26,7 @@ export const AccountsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Modals state
+  // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -41,7 +44,7 @@ export const AccountsPage: React.FC = () => {
       const res = await accountsApi.list();
       setAccounts(res.accounts || []);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch accounts');
+      setError(err.message || 'Failed to fetch financial accounts');
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +65,7 @@ export const AccountsPage: React.FC = () => {
   const handleOpenEdit = (acc: Account) => {
     setSelectedAccount(acc);
     setFormName(acc.name);
-    setFormType(acc.type);
+    setFormType(acc.type as any);
     setFormCurrency(acc.currency);
     setError(null);
     setIsEditModalOpen(true);
@@ -76,10 +79,14 @@ export const AccountsPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formName.trim()) {
+      setError('Account name is required');
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
-      await accountsApi.create({ name: formName, type: formType, currency: formCurrency });
+      await accountsApi.create({ name: formName.trim(), type: formType, currency: formCurrency });
       setIsCreateModalOpen(false);
       setSuccessMsg('Account created successfully');
       setTimeout(() => setSuccessMsg(null), 3000);
@@ -134,23 +141,62 @@ export const AccountsPage: React.FC = () => {
     }
   };
 
+  const totalAssets = accounts.reduce((sum, acc) => sum + Number(acc.balance || 0), 0);
+  const bankAccounts = accounts.filter(a => a.type === 'BANK').length;
+  const creditAccounts = accounts.filter(a => a.type === 'CREDIT').length;
+
   return (
-    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-            Financial Accounts
-          </h1>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            Manage operating bank accounts, credit facilities, and dynamic balance calculations
-          </p>
+    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Standardized Header */}
+      <PageHeader
+        eyebrow="TREASURY & BALANCES"
+        title={<>Financial <em>Accounts</em></>}
+        subtitle="Manage operating bank accounts, credit facilities, and dynamic double-entry ledger balances"
+        actions={
+          <button className="btn btn-primary" onClick={handleOpenCreate}>
+            <Plus size={16} />
+            <span>Create Account</span>
+          </button>
+        }
+      />
+
+      {/* Summary KPI Strip */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 20
+        }}
+      >
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">TOTAL LEDGER BALANCE</div>
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: totalAssets >= 0 ? 'var(--text-primary)' : 'var(--danger)', marginTop: 4 }} className="financial-figure">
+            ${totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 6 }}>
+            Aggregated across {accounts.length} configured accounts
+          </div>
         </div>
 
-        <button className="btn btn-teal" onClick={handleOpenCreate}>
-          <Plus size={18} />
-          Create Account
-        </button>
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">OPERATING BANK ACCOUNTS</div>
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--accent-gold)', marginTop: 4 }} className="financial-figure">
+            {bankAccounts}
+          </div>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 6 }}>
+            Primary operating cash reserves
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '24px 28px' }}>
+          <div className="meta-label">CREDIT & CASH FACILITIES</div>
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--accent-gold)', marginTop: 4 }} className="financial-figure">
+            {creditAccounts + accounts.filter(a => a.type === 'CASH').length}
+          </div>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 6 }}>
+            Sub-ledger accounts configured
+          </div>
+        </div>
       </div>
 
       {/* Success Alert */}
@@ -173,15 +219,15 @@ export const AccountsPage: React.FC = () => {
       {isLoading ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
           {[1, 2, 3].map(i => (
-            <div key={i} className="card skeleton" style={{ height: 210 }} />
+            <div key={i} className="card skeleton" style={{ height: 220, borderRadius: 'var(--radius-xl)' }} />
           ))}
         </div>
       ) : accounts.length === 0 ? (
         <EmptyState
-          title="No Accounts Configured"
-          description="Create your first bank or operating account to start ingesting transactions and running reconciliation."
+          title="No Financial Accounts Configured"
+          description="Create your first bank or operating cash account to start ingesting transactions and running automated reconciliation."
           icon={Wallet}
-          actionLabel="Create Account"
+          actionLabel="Create First Account"
           onAction={handleOpenCreate}
         />
       ) : (
@@ -191,29 +237,39 @@ export const AccountsPage: React.FC = () => {
             const balance = Number(acc.balance || 0);
 
             return (
-              <div key={acc.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div
+                key={acc.id}
+                className="card card-hover"
+                style={{
+                  padding: '28px 30px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 18,
+                  background: 'var(--bg-surface)'
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div
                       style={{
-                        width: 44,
-                        height: 44,
+                        width: 42,
+                        height: 42,
                         borderRadius: 'var(--radius-md)',
-                        background: 'rgba(20, 184, 166, 0.12)',
-                        border: '1px solid var(--border-accent)',
+                        background: 'var(--accent-gold-tint)',
+                        border: '1px solid rgba(212, 165, 72, 0.28)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: 'var(--accent-teal)'
+                        color: 'var(--accent-gold)'
                       }}
                     >
-                      <Icon size={22} />
+                      <Icon size={20} />
                     </div>
                     <div>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                         {acc.name}
                       </h3>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
                         {acc.currency} • Added {new Date(acc.createdAt).toLocaleDateString()}
                       </div>
                     </div>
@@ -222,29 +278,29 @@ export const AccountsPage: React.FC = () => {
                   <StatusBadge status={acc.type} />
                 </div>
 
-                <div style={{ padding: '14px 16px', background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
-                  <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <div style={{ padding: '16px 18px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                  <div className="meta-label">
                     Calculated Ledger Balance
                   </div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: balance >= 0 ? '#FFFFFF' : 'var(--danger)', marginTop: 4 }} className="financial-figure">
+                  <div style={{ fontSize: '1.85rem', fontWeight: 700, color: balance >= 0 ? 'var(--text-primary)' : 'var(--danger)', marginTop: 4 }} className="financial-figure">
                     ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 'auto', paddingTop: 10, borderTop: '1px solid var(--border-secondary)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
                   <button
                     className="btn btn-secondary btn-sm"
                     onClick={() => handleOpenEdit(acc)}
                   >
                     <Edit2 size={13} />
-                    Edit
+                    <span>Edit</span>
                   </button>
                   <button
                     className="btn btn-danger btn-sm"
                     onClick={() => handleOpenDelete(acc)}
                   >
                     <Trash2 size={13} />
-                    Delete
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>
@@ -254,7 +310,7 @@ export const AccountsPage: React.FC = () => {
       )}
 
       {/* Create Account Modal */}
-      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Create New Account">
+      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Create Financial Account">
         {error && (
           <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', color: 'var(--danger)', fontSize: '0.85rem', marginBottom: 16 }}>
             {error}
@@ -268,51 +324,48 @@ export const AccountsPage: React.FC = () => {
             <input
               type="text"
               className="input"
-              placeholder="e.g. SVB Operating Checking"
-              required
+              placeholder="e.g. Operating Treasury, Main Chase Bank"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
+              required
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                Account Type
-              </label>
-              <select
-                className="select"
-                value={formType}
-                onChange={(e) => setFormType(e.target.value as any)}
-              >
-                <option value="BANK">Bank Account</option>
-                <option value="CREDIT">Credit Facility</option>
-                <option value="CASH">Cash Reserve</option>
-              </select>
-            </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              Account Type
+            </label>
+            <select
+              className="select"
+              value={formType}
+              onChange={(e) => setFormType(e.target.value as any)}
+            >
+              <option value="BANK">Bank Account (Operating)</option>
+              <option value="CREDIT">Credit Line / Facility</option>
+              <option value="CASH">Cash Reserve</option>
+            </select>
+          </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                Currency
-              </label>
-              <select
-                className="select"
-                value={formCurrency}
-                onChange={(e) => setFormCurrency(e.target.value)}
-              >
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="INR">INR (₹)</option>
-              </select>
-            </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              Currency
+            </label>
+            <select
+              className="select"
+              value={formCurrency}
+              onChange={(e) => setFormCurrency(e.target.value)}
+            >
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
             <button type="button" className="btn btn-secondary" onClick={() => setIsCreateModalOpen(false)}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-teal" disabled={isSubmitting}>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Creating...' : 'Create Account'}
             </button>
           </div>
@@ -334,50 +387,47 @@ export const AccountsPage: React.FC = () => {
             <input
               type="text"
               className="input"
-              required
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
+              required
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                Account Type
-              </label>
-              <select
-                className="select"
-                value={formType}
-                onChange={(e) => setFormType(e.target.value as any)}
-              >
-                <option value="BANK">Bank Account</option>
-                <option value="CREDIT">Credit Facility</option>
-                <option value="CASH">Cash Reserve</option>
-              </select>
-            </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              Account Type
+            </label>
+            <select
+              className="select"
+              value={formType}
+              onChange={(e) => setFormType(e.target.value as any)}
+            >
+              <option value="BANK">Bank Account (Operating)</option>
+              <option value="CREDIT">Credit Line / Facility</option>
+              <option value="CASH">Cash Reserve</option>
+            </select>
+          </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                Currency
-              </label>
-              <select
-                className="select"
-                value={formCurrency}
-                onChange={(e) => setFormCurrency(e.target.value)}
-              >
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="INR">INR (₹)</option>
-              </select>
-            </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              Currency
+            </label>
+            <select
+              className="select"
+              value={formCurrency}
+              onChange={(e) => setFormCurrency(e.target.value)}
+            >
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
             <button type="button" className="btn btn-secondary" onClick={() => setIsEditModalOpen(false)}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-teal" disabled={isSubmitting}>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
@@ -385,27 +435,29 @@ export const AccountsPage: React.FC = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Confirm Account Deletion">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {error && (
-            <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', color: 'var(--danger)', fontSize: '0.85rem' }}>
-              {error}
-            </div>
-          )}
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Are you sure you want to delete account <strong>{selectedAccount?.name}</strong>?
+      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete Account">
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+            Are you sure you want to delete <strong style={{ color: '#FFFFFF' }}>{selectedAccount?.name}</strong>?
           </p>
-          <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            ⚠️ Accounts containing transactions or ledger entries cannot be deleted without first removing or reversing those transactions.
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: 8 }}>
+            Accounts with active transactions or ledger balances cannot be deleted to preserve financial audit compliance.
+          </p>
+        </div>
+
+        {error && (
+          <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', color: 'var(--danger)', fontSize: '0.85rem', marginBottom: 16 }}>
+            {error}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setIsDeleteModalOpen(false)}>
-              Cancel
-            </button>
-            <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isSubmitting}>
-              {isSubmitting ? 'Deleting...' : 'Confirm Delete'}
-            </button>
-          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button type="button" className="btn btn-secondary" onClick={() => setIsDeleteModalOpen(false)}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isSubmitting}>
+            {isSubmitting ? 'Deleting...' : 'Delete Account'}
+          </button>
         </div>
       </Modal>
     </div>

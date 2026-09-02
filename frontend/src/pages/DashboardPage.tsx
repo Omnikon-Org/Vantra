@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { accountsApi, transactionsApi, reconciliationApi, exceptionsApi, auditLogsApi, fraudApi } from '../api/client';
 import { Account, Transaction, Reconciliation, ReconciliationException, AuditLog, FraudStats } from '../types';
-import { KPICard } from '../components/common/KPICard';
+import { PageHeader } from '../components/common/PageHeader';
+import { MetricCard } from '../components/common/MetricCard';
+import { CashFlowChart } from '../components/common/CashFlowChart';
 import { StatusBadge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
 import {
@@ -14,16 +16,15 @@ import {
   AlertOctagon,
   ArrowRight,
   TrendingUp,
-  Clock,
-  Shield,
   ShieldAlert,
   Flame,
   PlusCircle,
   Play,
-  Building2,
   ScrollText,
   Activity,
-  DollarSign
+  CheckCircle2,
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -47,35 +48,39 @@ export const DashboardPage: React.FC = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
         const [accRes, txRes, reconRes, excRes, auditRes, fraudRes] = await Promise.all([
-          accountsApi.list(),
-          transactionsApi.list({ limit: 6 }),
-          reconciliationApi.list({ limit: 5 }),
-          exceptionsApi.list({ status: 'OPEN', limit: 5 }),
-          auditLogsApi.list({ limit: 5 }),
-          fraudApi.getStats()
+          accountsApi.list().catch(() => ({ accounts: [] })),
+          transactionsApi.list({ limit: 8 }).catch(() => ({ transactions: [] })),
+          reconciliationApi.list({ limit: 5 }).catch(() => ({ reconciliations: [] })),
+          exceptionsApi.list({ status: 'OPEN', limit: 5 }).catch(() => ({ exceptions: [] })),
+          auditLogsApi.list({ limit: 5 }).catch(() => ({ auditLogs: [] })),
+          fraudApi.getStats().catch(() => ({ stats: null }))
         ]);
 
-        setAccounts(accRes.accounts || []);
-        setRecentTransactions(txRes.transactions || []);
-        setReconciliations(reconRes.reconciliations || []);
-        setOpenExceptions(excRes.exceptions || []);
-        setRecentAuditLogs(auditRes.auditLogs || []);
-        setFraudStats(fraudRes.stats || null);
+        if (isMounted) {
+          setAccounts(accRes.accounts || []);
+          setRecentTransactions(txRes.transactions || []);
+          setReconciliations(reconRes.reconciliations || []);
+          setOpenExceptions(excRes.exceptions || []);
+          setRecentAuditLogs(auditRes.auditLogs || []);
+          setFraudStats(fraudRes.stats || null);
+        }
       } catch (err) {
         console.error('Failed to load dashboard telemetry:', err);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     fetchDashboardData();
+    return () => { isMounted = false; };
   }, []);
 
-  // Compute Financial Aggregates
+  // Compute Real Financial Aggregates
   const totalBalance = accounts.reduce((acc, a) => acc + (Number(a.balance) || 0), 0);
 
   const totalInflow = recentTransactions
@@ -96,101 +101,51 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-      {/* Top Header Command Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-              {getGreeting()}, {user?.name || user?.email?.split('@')[0]}
-            </h1>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '4px 10px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(20, 184, 166, 0.12)',
-                border: '1px solid rgba(20, 184, 166, 0.3)',
-                color: 'var(--accent-teal)',
-                fontSize: '0.75rem',
-                fontWeight: 700
-              }}
-            >
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-teal)' }} />
-              <span>{user?.tenant?.name || 'Acme Finance Corp'}</span>
-            </span>
-          </div>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            Institutional command center — double-entry ledgers, automated reconciliation, and fraud risk telemetry
-          </p>
-        </div>
+      {/* 1. Standardized Executive Command Header with Editorial Typography */}
+      <PageHeader
+        eyebrow="OVERVIEW"
+        title={<>{getGreeting()}, {user?.name || user?.email?.split('@')[0]} — Financial <em>Overview</em></>}
+        subtitle={`Organization: ${user?.tenant?.name || 'Vantra Financial'} • Production Sandbox`}
+        badge={
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '3px 10px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--accent-gold-tint)',
+              border: '1px solid rgba(212, 165, 72, 0.28)',
+              color: 'var(--accent-gold)',
+              fontSize: '0.725rem',
+              fontWeight: 700
+            }}
+          >
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-gold)' }} className="node-pulse" />
+            <span>OPERATIONAL</span>
+          </span>
+        }
+        actions={
+          <>
+            <Link to="/transactions" className="btn btn-secondary btn-sm">
+              <PlusCircle size={15} style={{ color: 'var(--accent-gold)' }} />
+              <span>+ Record Transaction</span>
+            </Link>
+            <Link to="/reconciliation" className="btn btn-primary btn-sm">
+              <Play size={14} />
+              <span>Run Reconciliation</span>
+            </Link>
+          </>
+        }
+      />
 
-        {/* Quick Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/transactions" className="btn btn-secondary btn-sm">
-            <PlusCircle size={15} style={{ color: 'var(--accent-teal)' }} />
-            <span>+ New Transaction</span>
-          </Link>
-          <Link to="/reconciliation" className="btn btn-teal btn-sm">
-            <Play size={14} />
-            <span>Run Reconciliation</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Critical Fraud Risk Alert Banner */}
+      {/* 2. Critical Fraud Alert Banner (Only when critical/high fraud alerts exist) */}
       {fraudStats && (fraudStats.criticalCount > 0 || fraudStats.highCount > 0) && (
         <div
           style={{
-            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.16) 0%, rgba(245, 158, 11, 0.16) 100%)',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '14px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 12
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(239, 68, 68, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--danger)'
-              }}
-            >
-              <ShieldAlert size={22} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFFFFF' }}>
-                {fraudStats.criticalCount + fraudStats.highCount} High/Critical Fraud Risk Alert{fraudStats.criticalCount + fraudStats.highCount > 1 ? 's' : ''} Detected
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                {fraudStats.criticalCount} Critical and {fraudStats.highCount} High-risk anomalies require immediate officer review.
-              </div>
-            </div>
-          </div>
-          <Link to="/fraud" className="btn btn-sm btn-danger">
-            View Fraud Center →
-          </Link>
-        </div>
-      )}
-
-      {/* Discrepancy Exception Alert Banner */}
-      {openExceptions.length > 0 && (!fraudStats || (fraudStats.criticalCount === 0 && fraudStats.highCount === 0)) && (
-        <div
-          style={{
-            background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(239, 68, 68, 0.12) 100%)',
-            border: '1px solid rgba(245, 158, 11, 0.35)',
-            borderRadius: 'var(--radius-lg)',
+            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 166, 35, 0.10) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.30)',
+            borderRadius: 'var(--radius-xl)',
             padding: '14px 20px',
             display: 'flex',
             alignItems: 'center',
@@ -205,142 +160,192 @@ export const DashboardPage: React.FC = () => {
                 width: 34,
                 height: 34,
                 borderRadius: 'var(--radius-md)',
-                background: 'rgba(245, 158, 11, 0.2)',
+                background: 'rgba(239, 68, 68, 0.18)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#F59E0B'
+                color: 'var(--danger)',
+                flexShrink: 0
               }}
             >
-              <AlertOctagon size={20} />
+              <ShieldAlert size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFFFFF' }}>
-                {openExceptions.length} Unresolved Reconciliation Exception{openExceptions.length > 1 ? 's' : ''} Detected
+              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {fraudStats.criticalCount + fraudStats.highCount} Elevated Fraud Risk Alert{fraudStats.criticalCount + fraudStats.highCount > 1 ? 's' : ''} Detected
               </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Differences require accountant approval to ensure ledger consistency and audit closure.
+              <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                {fraudStats.criticalCount} Critical and {fraudStats.highCount} High risk anomalies require review.
               </div>
             </div>
           </div>
-          <Link to="/exceptions" className="btn btn-sm btn-secondary" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#FFFFFF' }}>
+          <Link to="/fraud" className="btn btn-sm btn-danger">
+            View Fraud Center →
+          </Link>
+        </div>
+      )}
+
+      {/* 3. Open Reconciliation Exceptions Banner */}
+      {openExceptions.length > 0 && (!fraudStats || (fraudStats.criticalCount === 0 && fraudStats.highCount === 0)) && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, rgba(245, 166, 35, 0.10) 0%, rgba(212, 165, 72, 0.08) 100%)',
+            border: '1px solid rgba(245, 166, 35, 0.28)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '14px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(245, 166, 35, 0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--warning)',
+                flexShrink: 0
+              }}
+            >
+              <AlertOctagon size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {openExceptions.length} Unresolved Variance Exception{openExceptions.length > 1 ? 's' : ''}
+              </div>
+              <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                Statement discrepancies require approval to close ledger period.
+              </div>
+            </div>
+          </div>
+          <Link to="/exceptions" className="btn btn-sm btn-secondary" style={{ borderColor: 'rgba(245, 166, 35, 0.35)', color: 'var(--text-primary)' }}>
             Review Exceptions →
           </Link>
         </div>
       )}
 
-      {/* Primary KPI Metrics Grid */}
+      {/* 4. Financial KPI Hierarchy: Dominant Net Balance + Supporting Grid */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: '1.4fr 1fr 1fr 1fr',
           gap: 20
         }}
+        className="kpi-hierarchy-grid"
       >
-        <KPICard
+        {/* Dominant Net Ledger Balance */}
+        <MetricCard
           title="Net Ledger Balance"
           value={isLoading ? '$0.00' : `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          subtitle="Aggregated across active accounts"
+          subtitle={`${accounts.length} operating accounts configured`}
           icon={Wallet}
-          accentColor="teal"
+          isDominant={true}
+          accentColor="gold"
           isLoading={isLoading}
+          badge={
+            <span
+              style={{
+                fontSize: '0.675rem',
+                fontWeight: 700,
+                color: 'var(--accent-gold)',
+                background: 'var(--accent-gold-tint)',
+                border: '1px solid rgba(212, 165, 72, 0.28)',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-full)'
+              }}
+              className="mono"
+            >
+              BALANCED
+            </span>
+          }
         />
-        <KPICard
-          title="Total Inflow (30D)"
+
+        {/* Total Inflow */}
+        <MetricCard
+          title="Gross Inflow (30D)"
           value={isLoading ? '$0.00' : `+$${totalInflow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          subtitle="Operating credits & receipts"
+          subtitle="Operating receipts & wires"
           icon={ArrowDownLeft}
           accentColor="emerald"
           isLoading={isLoading}
         />
-        <KPICard
-          title="Total Outflow (30D)"
+
+        {/* Total Outflow */}
+        <MetricCard
+          title="Gross Outflow (30D)"
           value={isLoading ? '$0.00' : `-$${totalOutflow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          subtitle="Operating expenses & wires"
+          subtitle="Vendor debits & payroll"
           icon={ArrowUpRight}
-          accentColor="cyan"
+          accentColor="gold"
           isLoading={isLoading}
         />
-        <KPICard
+
+        {/* Reconciliation Health */}
+        <MetricCard
           title="Reconciliation Health"
           value={isLoading ? '100.0%' : `${reconHealthPercent}%`}
-          subtitle={`${openExceptions.length} active variance exceptions`}
+          subtitle={`${openExceptions.length} active exceptions`}
           icon={GitMerge}
-          accentColor="teal"
+          accentColor="gold"
           isLoading={isLoading}
         />
       </div>
 
-      {/* Cash Flow Movement & Telemetry Section */}
+      {/* 5. Dense Two-Column Layout */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '2fr 1fr',
-          gap: 24
+          gridTemplateColumns: '1.8fr 1fr',
+          gap: 20
         }}
         className="dashboard-two-col"
       >
-        {/* Left Column: Cash Flow Overview & Recent Ledger */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Cash Flow Movement Card */}
-          <div className="card" style={{ padding: '24px 28px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
-                  Cash Flow Movement
-                </h2>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Net capital velocity and double-entry balance distribution
-                </p>
-              </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--accent-teal)', fontWeight: 600 }}>
-                Real-Time Settlement
-              </span>
-            </div>
+        {/* Left Column: Cash Flow Chart + Recent Transactions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Real Cash Flow Visualization */}
+          <CashFlowChart
+            transactions={recentTransactions}
+            isLoading={isLoading}
+            onRecordTransaction={() => navigate('/transactions')}
+          />
 
-            {/* Inflow vs Outflow Visual Progress Bar */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: 6 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Operating Inflow</span>
-                  <span style={{ color: 'var(--success)', fontWeight: 700 }}>+${totalInflow.toFixed(2)}</span>
-                </div>
-                <div style={{ height: 8, width: '100%', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: totalInflow > 0 ? '75%' : '0%', background: 'linear-gradient(90deg, #10B981, #14B8A6)', borderRadius: 'var(--radius-full)' }} />
-                </div>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: 6 }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Operating Outflow</span>
-                  <span style={{ color: '#FFFFFF', fontWeight: 700 }}>-${totalOutflow.toFixed(2)}</span>
-                </div>
-                <div style={{ height: 8, width: '100%', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: totalOutflow > 0 ? '35%' : '0%', background: 'linear-gradient(90deg, #06B6D4, #38BDF8)', borderRadius: 'var(--radius-full)' }} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Transactions Card */}
-          <div className="card" style={{ padding: '24px 28px' }}>
+          {/* Recent Ledger Transactions */}
+          <div className="card" style={{ padding: '28px 32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
                   Recent Transactions
                 </h2>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                  Latest balanced journal entries posted to tenant ledgers
+                  Latest balanced double-entry records posted to tenant ledgers
                 </p>
               </div>
-              <Link to="/transactions" style={{ fontSize: '0.8125rem', color: 'var(--accent-teal)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span>View all ledger</span>
-                <ArrowRight size={14} />
+              <Link
+                to="/transactions"
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--accent-gold)',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>Full Ledger</span>
+                <ArrowRight size={13} />
               </Link>
             </div>
 
             {isLoading ? (
-              <div className="skeleton" style={{ height: 200, borderRadius: 'var(--radius-md)' }} />
+              <div className="skeleton" style={{ height: 220, borderRadius: 'var(--radius-md)' }} />
             ) : recentTransactions.length === 0 ? (
               <EmptyState
                 title="No Transactions Recorded"
@@ -350,7 +355,7 @@ export const DashboardPage: React.FC = () => {
                 onAction={() => navigate('/transactions')}
               />
             ) : (
-              <div className="table-container" style={{ border: 'none', background: 'transparent' }}>
+              <div className="table-container" style={{ border: '1px solid var(--border-subtle)', background: 'transparent' }}>
                 <table>
                   <thead>
                     <tr>
@@ -364,11 +369,11 @@ export const DashboardPage: React.FC = () => {
                     {recentTransactions.map((tx) => (
                       <tr key={tx.id}>
                         <td>
-                          <div style={{ fontWeight: 600, color: '#FFFFFF', fontSize: '0.875rem' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.85rem' }}>
                             {tx.description || 'Transaction'}
                           </div>
                           {tx.category && (
-                            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: 2 }}>
                               {tx.category.name}
                             </div>
                           )}
@@ -376,7 +381,7 @@ export const DashboardPage: React.FC = () => {
                         <td style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
                           {tx.account?.name || 'Account'}
                         </td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
                           {new Date(tx.createdAt).toLocaleDateString()}
                         </td>
                         <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -384,7 +389,7 @@ export const DashboardPage: React.FC = () => {
                             style={{
                               fontWeight: 700,
                               fontSize: '0.9rem',
-                              color: tx.type === 'INCOME' ? 'var(--success)' : '#FFFFFF'
+                              color: tx.type === 'INCOME' ? 'var(--success)' : 'var(--text-primary)'
                             }}
                             className="financial-figure"
                           >
@@ -400,133 +405,149 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Fraud Risk Telemetry, Reconciliation Health & Live Audit Stream */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Fraud Risk Telemetry Widget */}
-          <div className="card" style={{ padding: '22px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        {/* Right Column: Reconciliation Operational Health + Fraud Risk + Live Audit Activity */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Reconciliation Operational Health Card */}
+          <div className="card" style={{ padding: '24px 28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ShieldAlert size={18} style={{ color: 'var(--danger)' }} />
-                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
-                  Fraud Risk Telemetry
+                <GitMerge size={17} style={{ color: 'var(--accent-gold)' }} />
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Reconciliation Health
                 </h2>
               </div>
-              <Link to="/fraud" style={{ fontSize: '0.75rem', color: 'var(--accent-teal)', textDecoration: 'none', fontWeight: 600 }}>
-                Fraud Center →
+              <Link to="/reconciliation" style={{ fontSize: '0.775rem', color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}>
+                Manage →
               </Link>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
-              <div style={{ padding: '10px 8px', background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>CRITICAL</div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (fraudStats?.criticalCount || 0) > 0 ? 'var(--danger)' : '#FFFFFF', marginTop: 2 }}>
-                  {fraudStats?.criticalCount || 0}
-                </div>
-              </div>
-              <div style={{ padding: '10px 8px', background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>HIGH</div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (fraudStats?.highCount || 0) > 0 ? '#F97316' : '#FFFFFF', marginTop: 2 }}>
-                  {fraudStats?.highCount || 0}
-                </div>
-              </div>
-              <div style={{ padding: '10px 8px', background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>MEDIUM</div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (fraudStats?.mediumCount || 0) > 0 ? 'var(--warning)' : '#FFFFFF', marginTop: 2 }}>
-                  {fraudStats?.mediumCount || 0}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-secondary)', paddingTop: 10 }}>
-              <span>Total Open Alerts:</span>
-              <strong style={{ color: (fraudStats?.openCount || 0) > 0 ? 'var(--warning)' : 'var(--success)' }}>
-                {fraudStats?.openCount || 0} alerts
-              </strong>
-            </div>
-          </div>
-
-          {/* Reconciliation Health Card */}
-          <div className="card" style={{ padding: '22px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
-                Reconciliation Health
-              </h2>
-              <GitMerge size={18} style={{ color: 'var(--accent-teal)' }} />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-              <div style={{ padding: 10, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
-                <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>MATCHED RATIO</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-teal)', marginTop: 2 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div style={{ padding: '12px 14px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div className="meta-label">MATCH RATE</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--accent-gold)', marginTop: 2 }} className="financial-figure">
                   {reconHealthPercent}%
                 </div>
               </div>
-              <div style={{ padding: 10, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
-                <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>EXCEPTIONS</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: openExceptions.length > 0 ? 'var(--warning)' : 'var(--success)', marginTop: 2 }}>
+              <div style={{ padding: '12px 14px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div className="meta-label">EXCEPTIONS</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 700, color: openExceptions.length > 0 ? 'var(--warning)' : 'var(--success)', marginTop: 2 }} className="financial-figure">
                   {openExceptions.length}
                 </div>
               </div>
             </div>
 
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-secondary)', paddingTop: 10 }}>
-              <span>Last Reconciliation:</span>
+            {/* Operational Pipeline Flow */}
+            <div style={{ padding: '11px 14px', background: 'rgba(10, 12, 16, 0.5)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', marginBottom: 12 }}>
+              <div style={{ fontSize: '0.675rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6 }} className="meta-label">
+                PIPELINE STATUS
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Pass 1-5 Engine:</span>
+                <span style={{ color: 'var(--accent-gold)', fontWeight: 700 }}>SYNCHRONIZED</span>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+              <span>Last Run:</span>
               <strong style={{ color: 'var(--text-secondary)' }}>{lastReconDate}</strong>
             </div>
           </div>
 
-          {/* Live Audit Activity Stream */}
-          <div className="card" style={{ padding: '22px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          {/* Fraud Risk Telemetry Card */}
+          <div className="card" style={{ padding: '24px 28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ScrollText size={18} style={{ color: 'var(--accent-cyan)' }} />
-                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
-                  Live Audit Activity
+                <ShieldAlert size={17} style={{ color: 'var(--danger)' }} />
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Fraud Risk Telemetry
                 </h2>
               </div>
-              <Link to="/audit-logs" style={{ fontSize: '0.75rem', color: 'var(--accent-teal)', textDecoration: 'none', fontWeight: 600 }}>
-                View all →
+              <Link to="/fraud" style={{ fontSize: '0.775rem', color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}>
+                Fraud Center →
+              </Link>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+              <div style={{ padding: '12px 6px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>CRITICAL</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: (fraudStats?.criticalCount || 0) > 0 ? 'var(--danger)' : 'var(--text-primary)', marginTop: 2 }} className="financial-figure">
+                  {fraudStats?.criticalCount || 0}
+                </div>
+              </div>
+              <div style={{ padding: '12px 6px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>HIGH</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: (fraudStats?.highCount || 0) > 0 ? 'var(--warning)' : 'var(--text-primary)', marginTop: 2 }} className="financial-figure">
+                  {fraudStats?.highCount || 0}
+                </div>
+              </div>
+              <div style={{ padding: '12px 6px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>MEDIUM</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: (fraudStats?.mediumCount || 0) > 0 ? 'var(--warning)' : 'var(--text-primary)', marginTop: 2 }} className="financial-figure">
+                  {fraudStats?.mediumCount || 0}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+              <span>Open Risk Queue:</span>
+              <strong style={{ color: (fraudStats?.openCount || 0) > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                {fraudStats?.openCount || 0} active alerts
+              </strong>
+            </div>
+          </div>
+
+          {/* Live Audit Activity Feed */}
+          <div className="card" style={{ padding: '24px 28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ScrollText size={17} style={{ color: 'var(--accent-gold)' }} />
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Live Audit Trail
+                </h2>
+              </div>
+              <Link to="/audit-logs" style={{ fontSize: '0.775rem', color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}>
+                Inspect →
               </Link>
             </div>
 
             {isLoading ? (
-              <div className="skeleton" style={{ height: 160, borderRadius: 'var(--radius-md)' }} />
+              <div className="skeleton" style={{ height: 140, borderRadius: 'var(--radius-md)' }} />
             ) : recentAuditLogs.length === 0 ? (
-              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              <div style={{ padding: '18px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7875rem' }}>
                 No audit events recorded yet.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {recentAuditLogs.map((log) => (
                   <div
                     key={log.id}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 4,
+                      gap: 3,
                       padding: '10px 12px',
-                      background: 'rgba(6, 11, 20, 0.5)',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-secondary)'
+                      background: 'rgba(10, 12, 16, 0.65)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-subtle)'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span
                         style={{
-                          fontSize: '0.7rem',
+                          fontSize: '0.6875rem',
                           fontWeight: 700,
-                          color: 'var(--accent-teal)'
+                          color: 'var(--accent-gold)'
                         }}
                         className="mono"
                       >
                         {log.action}
                       </span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>
                         {new Date(log.createdAt).toLocaleTimeString()}
                       </span>
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      by <strong style={{ color: '#FFFFFF' }}>{log.user?.name || log.user?.email || 'System'}</strong> ({log.entityType})
+                      by <strong style={{ color: 'var(--text-primary)' }}>{log.user?.name || log.user?.email || 'System'}</strong> ({log.entityType})
                     </div>
                   </div>
                 ))}
@@ -537,8 +558,16 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       <style>{`
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
+          .kpi-hierarchy-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        @media (max-width: 900px) {
           .dashboard-two-col {
+            grid-template-columns: 1fr !important;
+          }
+          .kpi-hierarchy-grid {
             grid-template-columns: 1fr !important;
           }
         }

@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { fraudApi } from '../api/client';
 import { FraudAlert, FraudStats } from '../types';
-import { KPICard } from '../components/common/KPICard';
+import { PageHeader } from '../components/common/PageHeader';
+import { MetricCard } from '../components/common/MetricCard';
 import { StatusBadge, Badge } from '../components/common/Badge';
 import { Modal } from '../components/common/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { Pagination } from '../components/common/Pagination';
+import { SkeletonTable } from '../components/common/Skeleton';
 import {
   ShieldAlert,
   AlertTriangle,
@@ -21,7 +23,8 @@ import {
   XCircle,
   ShieldCheck,
   Building2,
-  Lock
+  Lock,
+  ArrowRight
 } from 'lucide-react';
 
 export const FraudCenterPage: React.FC = () => {
@@ -117,7 +120,7 @@ export const FraudCenterPage: React.FC = () => {
     try {
       const res = await fraudApi.reviewAlert(selectedAlert.id, { notes: reviewNotes });
       setSelectedAlert(res.alert);
-      setSuccessMsg('Alert marked as in review');
+      setSuccessMsg('Alert status moved to In Review');
       setTimeout(() => setSuccessMsg(null), 3000);
       fetchData();
     } catch (err: any) {
@@ -130,7 +133,7 @@ export const FraudCenterPage: React.FC = () => {
   const handleResolveAlert = async (resolutionStatus: 'CONFIRMED' | 'DISMISSED' | 'RESOLVED') => {
     if (!selectedAlert) return;
     if (!reviewNotes.trim()) {
-      setError('Please provide resolution notes before resolving or dismissing an alert.');
+      setError('Please provide resolution notes before closing an alert.');
       return;
     }
 
@@ -154,29 +157,41 @@ export const FraudCenterPage: React.FC = () => {
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'var(--danger)';
-    if (score >= 60) return '#F97316'; // Orange / High
+    if (score >= 60) return '#F97316';
     if (score >= 30) return 'var(--warning)';
     return 'var(--success)';
   };
 
   return (
-    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-            Fraud Detection
-          </h1>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            Monitor suspicious financial activity, high-velocity transactions, and explainable risk scores
-          </p>
-        </div>
-
-        <button className="btn btn-teal" onClick={handleRunBatchScan} disabled={isScanning}>
-          <Scan size={15} />
-          <span>{isScanning ? 'Running Scan...' : 'Run Fraud Scan'}</span>
-        </button>
-      </div>
+    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Page Header */}
+      <PageHeader
+        eyebrow="RISK INTELLIGENCE"
+        title={<>Fraud <em>Telemetry</em> Center</>}
+        subtitle="Deterministic risk scoring, velocity rule triggers, and active transaction anomaly queue"
+        badge={
+          <span
+            style={{
+              padding: '3px 10px',
+              borderRadius: 'var(--radius-full)',
+              background: (stats?.criticalCount || 0) > 0 ? 'var(--danger-bg)' : 'var(--accent-gold-tint)',
+              color: (stats?.criticalCount || 0) > 0 ? 'var(--danger)' : 'var(--accent-gold)',
+              fontSize: '0.725rem',
+              fontWeight: 700,
+              border: `1px solid ${(stats?.criticalCount || 0) > 0 ? 'var(--danger-border)' : 'rgba(212, 165, 72, 0.28)'}`
+            }}
+            className="mono"
+          >
+            {stats?.openCount || 0} OPEN ALERTS
+          </span>
+        }
+        actions={
+          <button className="btn btn-primary" onClick={handleRunBatchScan} disabled={isScanning}>
+            <Scan size={15} />
+            <span>{isScanning ? 'Running Scan...' : 'Run Fraud Scan'}</span>
+          </button>
+        }
+      />
 
       {/* Success / Error Banners */}
       {successMsg && (
@@ -193,9 +208,9 @@ export const FraudCenterPage: React.FC = () => {
         </div>
       )}
 
-      {/* 4 KPI Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <KPICard
+      {/* 4 Risk KPI Metrics */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+        <MetricCard
           title="Active Fraud Alerts"
           value={stats ? stats.openCount : 0}
           subtitle="Open risk investigations"
@@ -203,15 +218,15 @@ export const FraudCenterPage: React.FC = () => {
           accentColor="amber"
           isLoading={isLoading}
         />
-        <KPICard
+        <MetricCard
           title="Critical Risk"
           value={stats ? stats.criticalCount : 0}
           subtitle="Scores 80–100 require action"
           icon={Flame}
-          accentColor="amber"
+          accentColor="red"
           isLoading={isLoading}
         />
-        <KPICard
+        <MetricCard
           title="High Risk"
           value={stats ? stats.highCount : 0}
           subtitle="Scores 60–79 under review"
@@ -219,33 +234,77 @@ export const FraudCenterPage: React.FC = () => {
           accentColor="amber"
           isLoading={isLoading}
         />
-        <KPICard
-          title="Under Review"
-          value={stats ? stats.inReviewCount : 0}
-          subtitle="Assigned to analysts"
-          icon={Clock}
-          accentColor="cyan"
+        <MetricCard
+          title="Avg Risk Score"
+          value={stats ? `${stats.avgRiskScore.toFixed(0)}/100` : '0/100'}
+          subtitle="Evaluated across all accounts"
+          icon={ShieldCheck}
+          accentColor="gold"
           isLoading={isLoading}
         />
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="card" style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center' }}>
-        {/* Search */}
+      {/* Severity Scale Legend Bar */}
+      <div
+        className="card"
+        style={{
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="meta-label">RISK SEVERITY SPECTRUM:</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', fontSize: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }} />
+            <span style={{ color: 'var(--text-secondary)' }}>Low (0–29)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--warning)' }} />
+            <span style={{ color: 'var(--text-secondary)' }}>Medium (30–59)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F97316' }} />
+            <span style={{ color: 'var(--text-secondary)' }}>High (60–79)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)' }} />
+            <span style={{ color: 'var(--danger)', fontWeight: 700 }}>Critical (80–100)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div
+        className="card"
+        style={{
+          padding: '14px 18px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 12,
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
         <div style={{ flex: '1 1 240px', position: 'relative' }}>
-          <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             type="text"
             className="input"
-            placeholder="Search alert ID, transaction description, account..."
-            style={{ paddingLeft: 36 }}
+            style={{ paddingLeft: 34, fontSize: '0.825rem' }}
+            placeholder="Search alert ID, transaction description, account name, reason..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        {/* Status Filter */}
-        <div style={{ width: 170 }}>
+        <div style={{ width: 160 }}>
           <select
             className="select"
             value={statusFilter}
@@ -254,13 +313,12 @@ export const FraudCenterPage: React.FC = () => {
             <option value="">All Statuses</option>
             <option value="OPEN">Open</option>
             <option value="IN_REVIEW">In Review</option>
-            <option value="CONFIRMED">Confirmed Fraud</option>
-            <option value="DISMISSED">Dismissed</option>
             <option value="RESOLVED">Resolved</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="DISMISSED">Dismissed</option>
           </select>
         </div>
 
-        {/* Severity Filter */}
         <div style={{ width: 170 }}>
           <select
             className="select"
@@ -268,23 +326,23 @@ export const FraudCenterPage: React.FC = () => {
             onChange={(e) => { setSeverityFilter(e.target.value); setPage(1); }}
           >
             <option value="">All Severities</option>
-            <option value="CRITICAL">Critical (80–100)</option>
-            <option value="HIGH">High (60–79)</option>
-            <option value="MEDIUM">Medium (30–59)</option>
-            <option value="LOW">Low (0–29)</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
           </select>
         </div>
       </div>
 
-      {/* Fraud Alert Table */}
+      {/* Alerts Table */}
       {isLoading ? (
-        <div className="card skeleton" style={{ height: 400, borderRadius: 'var(--radius-lg)' }} />
+        <SkeletonTable rows={7} columns={6} />
       ) : alerts.length === 0 ? (
         <EmptyState
           title="No Suspicious Activity Detected"
-          description="Vantra has not identified any transactions requiring fraud review."
+          description={search || statusFilter || severityFilter ? "No alerts match the selected filter criteria." : "All transactions have cleared deterministic fraud rules with zero compound risks."}
           icon={ShieldCheck}
-          actionLabel="Run Fraud Scan"
+          actionLabel="Run Scan Now"
           onAction={handleRunBatchScan}
         />
       ) : (
@@ -292,76 +350,72 @@ export const FraudCenterPage: React.FC = () => {
           <table>
             <thead>
               <tr>
-                <th>Alert ID</th>
-                <th>Transaction</th>
-                <th>Account</th>
-                <th>Amount</th>
                 <th>Risk Score</th>
                 <th>Severity</th>
+                <th>Transaction</th>
+                <th>Account</th>
+                <th>Rule Reasons</th>
                 <th>Status</th>
-                <th>Date Flagged</th>
+                <th>Detected At</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {alerts.map((alert) => (
                 <tr key={alert.id}>
-                  <td style={{ fontWeight: 700, color: 'var(--accent-teal)', fontSize: '0.825rem' }} className="mono">
-                    #{alert.id.slice(0, 8)}
-                  </td>
                   <td>
-                    <div style={{ fontWeight: 600, color: '#FFFFFF', fontSize: '0.875rem' }}>
-                      {alert.transaction?.description || 'Transaction'}
-                    </div>
-                    <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                      {alert.reasons.length} risk factor{alert.reasons.length > 1 ? 's' : ''} triggered
-                    </div>
-                  </td>
-                  <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                    {alert.transaction?.account?.name || 'Account'}
-                  </td>
-                  <td style={{ fontWeight: 700 }} className="financial-figure">
-                    ${Number(alert.transaction?.amount || 0).toFixed(2)}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div
-                        style={{
-                          width: 48,
-                          height: 6,
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          borderRadius: 'var(--radius-full)',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${alert.riskScore}%`,
-                            height: '100%',
-                            background: getScoreColor(alert.riskScore),
-                            borderRadius: 'var(--radius-full)'
-                          }}
-                        />
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span
                         style={{
-                          fontWeight: 800,
-                          fontSize: '0.875rem',
+                          fontWeight: 900,
+                          fontSize: '0.95rem',
                           color: getScoreColor(alert.riskScore)
                         }}
                         className="financial-figure"
                       >
                         {alert.riskScore}
                       </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/ 100</span>
                     </div>
                   </td>
                   <td>
                     <StatusBadge status={alert.severity} />
                   </td>
                   <td>
+                    {alert.transaction ? (
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#FFFFFF', fontSize: '0.85rem' }}>
+                          ${Number(alert.transaction.amount).toFixed(2)}
+                        </div>
+                        <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                          {alert.transaction.description || 'Transaction'}
+                        </div>
+                      </div>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    {alert.transaction?.account?.name || 'Account'}
+                  </td>
+                  <td style={{ fontSize: '0.7875rem', maxWidth: 280 }}>
+                    <div style={{ color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {alert.reasons.slice(0, 2).map((r, i) => (
+                        <div key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          • {r}
+                        </div>
+                      ))}
+                      {alert.reasons.length > 2 && (
+                        <span style={{ fontSize: '0.675rem', color: 'var(--accent-teal)' }}>
+                          +{alert.reasons.length - 2} more rules
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
                     <StatusBadge status={alert.status} />
                   </td>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                  <td style={{ color: 'var(--text-muted)', fontSize: '0.775rem', whiteSpace: 'nowrap' }}>
                     {new Date(alert.createdAt).toLocaleDateString()}
                   </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -370,7 +424,7 @@ export const FraudCenterPage: React.FC = () => {
                       onClick={() => handleOpenAlert(alert)}
                     >
                       <Eye size={13} />
-                      Inspect
+                      <span>Investigate</span>
                     </button>
                   </td>
                 </tr>
@@ -381,189 +435,113 @@ export const FraudCenterPage: React.FC = () => {
       )}
 
       {/* Pagination */}
-      <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
+      {!isLoading && total > limit && (
+        <Pagination
+          page={page}
+          total={total}
+          limit={limit}
+          onPageChange={(p) => setPage(p)}
+        />
+      )}
 
-      {/* Fraud Alert Details Modal */}
-      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title={`Fraud Risk Investigation #${selectedAlert?.id.slice(0, 8)}`} maxWidth="760px">
-        {selectedAlert && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {error && (
-              <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', color: 'var(--danger)', fontSize: '0.85rem' }}>
-                {error}
-              </div>
-            )}
-
-            {/* Top Score Banner */}
-            <div
-              style={{
-                background: 'rgba(6, 11, 20, 0.75)',
-                border: '1px solid var(--border-secondary)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '20px 24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 16
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 'var(--radius-md)',
-                    background: `${getScoreColor(selectedAlert.riskScore)}15`,
-                    border: `1px solid ${getScoreColor(selectedAlert.riskScore)}40`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: getScoreColor(selectedAlert.riskScore)
-                  }}
-                >
-                  <span style={{ fontSize: '1.4rem', fontWeight: 900, lineHeight: 1 }} className="financial-figure">
-                    {selectedAlert.riskScore}
-                  </span>
-                  <span style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', marginTop: 2 }}>
-                    SCORE
-                  </span>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF' }}>
-                      {selectedAlert.severity} RISK ALERT
-                    </h3>
-                    <StatusBadge status={selectedAlert.status} />
-                  </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                    Flagged on {new Date(selectedAlert.createdAt).toLocaleString()}
-                  </p>
+      {/* Alert Investigation & Resolution Modal */}
+      {selectedAlert && (
+        <Modal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          title="Fraud Risk Investigation"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Risk Header Strip */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'rgba(4, 8, 17, 0.7)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
+              <div>
+                <span className="meta-label">RISK SCORE</span>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: getScoreColor(selectedAlert.riskScore), marginTop: 2 }} className="financial-figure">
+                  {selectedAlert.riskScore} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 100</span>
                 </div>
               </div>
-
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  TRANSACTION AMOUNT
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#FFFFFF' }} className="financial-figure">
-                  ${Number(selectedAlert.transaction?.amount || 0).toFixed(2)}
-                </div>
+                <span className="meta-label">SEVERITY LEVEL</span>
+                <div style={{ marginTop: 4 }}><StatusBadge status={selectedAlert.severity} /></div>
               </div>
             </div>
 
-            {/* Explainable Reasons Section */}
+            {/* Triggered Reasons Breakdown */}
             <div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFFFFF', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <AlertTriangle size={16} style={{ color: getScoreColor(selectedAlert.riskScore) }} />
-                <span>Explainable Fraud Indicators ({selectedAlert.reasons.length})</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {selectedAlert.reasons.map((reason, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '10px 14px',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-secondary)',
-                      fontSize: '0.85rem',
-                      color: 'var(--text-primary)',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 8
-                    }}
-                  >
-                    <span style={{ color: getScoreColor(selectedAlert.riskScore), fontWeight: 800 }}>•</span>
-                    <span>{reason}</span>
+              <span className="meta-label">TRIGGERED DETERMINISTIC RULES</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+                {selectedAlert.reasons.map((r, i) => (
+                  <div key={i} style={{ padding: '8px 12px', background: 'rgba(4, 8, 17, 0.5)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-secondary)', fontSize: '0.8rem', color: '#FFFFFF' }}>
+                    {r}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Transaction Metadata Breakdown */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, padding: 14, background: 'rgba(6, 11, 20, 0.6)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ACCOUNT</div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFFFFF' }}>{selectedAlert.transaction?.account?.name || 'Account'}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>TYPE</div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFFFFF' }}>{selectedAlert.transaction?.type}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>VALUE DATE</div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFFFFF' }}>
-                  {new Date(selectedAlert.transaction?.transactionAt || selectedAlert.transaction?.createdAt || '').toLocaleDateString()}
+            {/* Transaction Data */}
+            {selectedAlert.transaction && (
+              <div style={{ padding: '12px 14px', background: 'rgba(4, 8, 17, 0.45)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-secondary)' }}>
+                <span className="meta-label">TRANSACTION TELEMETRY</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {selectedAlert.transaction.description || 'Transaction'}
+                  </span>
+                  <strong style={{ color: '#FFFFFF' }} className="financial-figure">
+                    ${Number(selectedAlert.transaction.amount).toFixed(2)}
+                  </strong>
                 </div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>STATUS</div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFFFFF' }}>{selectedAlert.transaction?.status}</div>
-              </div>
-            </div>
+            )}
 
-            {/* Review Notes / Resolution Box */}
+            {/* Review Notes Area */}
             <div>
               <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                Auditor Resolution & Investigation Notes
+                Investigation Notes & Resolution Audit
               </label>
               <textarea
                 className="textarea"
                 rows={3}
-                placeholder="Enter justification, customer verification confirmation, or false-positive notes..."
+                placeholder="Document your compliance review, authorization notes, or false-positive rationale..."
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
               />
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, borderTop: '1px solid var(--border-secondary)', paddingTop: 16 }}>
-              <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 8 }}>
+              {selectedAlert.status === 'OPEN' && (
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={handleReviewAlert}
-                  disabled={isSubmittingAction || selectedAlert.status === 'IN_REVIEW'}
+                  disabled={isSubmittingAction}
                 >
-                  <Clock size={14} />
                   Mark In Review
                 </button>
-              </div>
+              )}
 
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => handleResolveAlert('DISMISSED')}
                   disabled={isSubmittingAction}
                 >
-                  <XCircle size={14} />
                   Dismiss (False Positive)
                 </button>
                 <button
                   type="button"
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleResolveAlert('CONFIRMED')}
-                  disabled={isSubmittingAction}
-                >
-                  <Flame size={14} />
-                  Confirm Fraud
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-teal btn-sm"
+                  className="btn btn-primary btn-sm"
                   onClick={() => handleResolveAlert('RESOLVED')}
                   disabled={isSubmittingAction}
                 >
-                  <CheckCircle2 size={14} />
-                  Mark Resolved
+                  Confirm & Resolve
                 </button>
               </div>
             </div>
           </div>
-        )}
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 };

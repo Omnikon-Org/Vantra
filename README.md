@@ -210,7 +210,37 @@ cd backend
 
 # 4. Audit Trail & Exception Management Suite
 ./test_audit_exceptions.sh
+
+# 5. Google OAuth 2.0 Integration Suite
+./test_google_auth.sh
+
+# 6. Step 8 — Fraud Detection Engine Suite
+./test_fraud_detection.sh
 ```
+
+---
+
+## 🛡️ Step 8 — Fraud Detection Engine
+
+Vantra features an internal, deterministic rule-based fraud detection engine that calculates a transparent risk score (0–100) and provides explainable reasons for every flagged transaction:
+
+### 1. The 7 Deterministic Risk Rules
+1. **Rule 1 — High Value Transaction**: Flags transactions exceeding the configured $10,000 threshold (+25 score).
+2. **Rule 2 — Rapid Successive Transactions**: Flags multiple ($\ge 3$) transactions occurring within a 5-minute window on the same account (+20 score).
+3. **Rule 3 — Unusual Transaction Amount**: Flags amounts $\ge 3\times$ higher than the historical account average (+20 score).
+4. **Rule 4 — Duplicate Transaction**: Flags identical amounts posted on the same account within a 24-hour window (+30 score).
+5. **Rule 5 — Unusual Frequency**: Flags unusually high velocity ($\ge 5$ transactions in 1 hour) (+15 score).
+6. **Rule 6 — Reconciliation Anomaly**: Flags transactions linked to active reconciliation discrepancies or unmatched exceptions (+15 score).
+7. **Rule 7 — Suspicious Compound Pattern**: Compounding score addition (+15 score) when $\ge 3$ independent risk rules trigger simultaneously.
+
+### 2. Risk Score & Severity Hierarchy
+- **LOW (0–29)**: Standard low-risk financial movements.
+- **MEDIUM (30–59)**: Monitored variance anomalies; generates `OPEN` alert.
+- **HIGH (60–79)**: Elevated velocity/duplicate risks; requires analyst review.
+- **CRITICAL (80–100)**: Severe compound risk requiring immediate compliance lockdown.
+
+### 3. Alert Lifecycle
+`OPEN` $\rightarrow$ `IN_REVIEW` $\rightarrow$ `CONFIRMED` / `DISMISSED` (False Positive) / `RESOLVED` (with mandatory audit resolution notes).
 
 ---
 
@@ -261,13 +291,20 @@ Follow these steps to configure Google OAuth 2.0 / OpenID Connect for Vantra:
 | `/api/accounts` | `GET` | Bearer | List tenant accounts with computed balances |
 | `/api/accounts` | `POST` | Bearer | Create operating bank, credit, or cash account |
 | `/api/transactions` | `GET` | Bearer | Paginated ledger search & filter |
-| `/api/transactions` | `POST` | Bearer | Ingest double-entry balanced transaction |
+| `/api/transactions` | `POST` | Bearer | Ingest double-entry balanced transaction & trigger fraud check |
 | `/api/reconciliation` | `POST` | Bearer | Run 5-pass reconciliation against statement feed |
 | `/api/reconciliation/:id/manual-match` | `POST` | Bearer | Manually link unmatched statement to internal txn |
 | `/api/reconciliation/:id/resolve` | `POST` | Bearer | Mark discrepancy item as resolved with reason |
 | `/api/exceptions` | `GET` | Bearer | List discrepancy & unmatched exceptions |
 | `/api/exceptions/:id/status` | `PATCH` | Bearer | Update exception status (`OPEN` / `IN_REVIEW`) |
 | `/api/exceptions/:id/resolve` | `POST` | Bearer | Resolve exception with mandatory audit notes |
+| `/api/fraud/analyze/:transactionId` | `POST` | Bearer | Analyze specific transaction on-demand |
+| `/api/fraud/analyze` | `POST` | Bearer | Run batch fraud scan across tenant transactions |
+| `/api/fraud/alerts` | `GET` | Bearer | List fraud alerts with severity & status filters |
+| `/api/fraud/alerts/:id` | `GET` | Bearer | Get alert details, rule breakdown, and timeline |
+| `/api/fraud/alerts/:id/review` | `POST` | Bearer | Move alert status to `IN_REVIEW` |
+| `/api/fraud/alerts/:id/resolve` | `POST` | Bearer | Mark alert as `CONFIRMED`, `DISMISSED`, or `RESOLVED` |
+| `/api/fraud/stats` | `GET` | Bearer | Return tenant fraud statistics & risk averages |
 | `/api/audit-logs` | `GET` | Bearer | Paginated immutable audit trail (Read-Only) |
 
 ---
@@ -278,10 +315,11 @@ Follow these steps to configure Google OAuth 2.0 / OpenID Connect for Vantra:
 - **Append-Only Immutability**: No `UPDATE` or `DELETE` endpoints exist for audit logs.
 - **Secret Redaction**: Passwords, authorization headers, and API keys are automatically stripped from audit metadata payloads.
 - **Double-Entry Enforcement**: Transactions enforce matching debit/credit ledger records to prevent ungrounded balance creations.
-- **Cryptographic OAuth Protection**: Secure server-side identity verification and CSRF state token protection.
+- **Explainable Risk Audits**: All fraud alerts retain exact deterministic rule triggers and scoring factors in immutable audit trails.
 
 ---
 
 ## 📄 License
 
 MIT License. Copyright © 2026 Vantra Inc. All rights reserved.
+

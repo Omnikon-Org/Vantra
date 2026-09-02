@@ -29,7 +29,7 @@ export const LoginPage: React.FC = () => {
     const err = params.get('error');
 
     if (err) {
-      setError(decodeURIComponent(err));
+      setError(err);
     } else if (token) {
       setIsLoading(true);
       loginWithToken(token)
@@ -96,7 +96,7 @@ export const LoginPage: React.FC = () => {
             left: '-10%',
             width: '400px',
             height: '400px',
-            background: 'radial-gradient(circle, rgba(20, 184, 166, 0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(212, 165, 72, 0.12) 0%, transparent 70%)',
             filter: 'blur(60px)',
             pointerEvents: 'none'
           }}
@@ -109,21 +109,21 @@ export const LoginPage: React.FC = () => {
               width: 42,
               height: 42,
               borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)',
+              background: 'var(--accent-gold-gradient)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#FFFFFF',
-              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)'
+              color: '#0A0C10',
+              boxShadow: '0 4px 16px rgba(212, 165, 72, 0.35)'
             }}
           >
             <ShieldCheck size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
               VANTRA
             </div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent-teal)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Financial Engine
             </div>
           </div>
@@ -138,9 +138,9 @@ export const LoginPage: React.FC = () => {
               gap: 8,
               padding: '4px 12px',
               borderRadius: 'var(--radius-full)',
-              background: 'rgba(20, 184, 166, 0.1)',
-              border: '1px solid rgba(20, 184, 166, 0.25)',
-              color: 'var(--accent-teal)',
+              background: 'var(--accent-gold-tint)',
+              border: '1px solid rgba(212, 165, 72, 0.28)',
+              color: 'var(--accent-gold)',
               fontSize: '0.75rem',
               fontWeight: 700,
               letterSpacing: '0.04em',
@@ -152,8 +152,8 @@ export const LoginPage: React.FC = () => {
             <span>Multi-Tenant Financial Platform</span>
           </div>
 
-          <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.02em', color: '#FFFFFF', marginBottom: 16 }}>
-            Accurate reconciliation and audit compliance for modern finance teams.
+          <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.02em', color: 'var(--text-primary)', marginBottom: 16 }}>
+            Accurate reconciliation and audit compliance for <em>modern finance</em> teams.
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28 }}>
@@ -163,7 +163,7 @@ export const LoginPage: React.FC = () => {
               'Append-only immutable system audit logs'
             ].map((text, idx) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <CheckCircle2 size={16} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                <CheckCircle2 size={16} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{text}</span>
               </div>
             ))}
@@ -172,7 +172,7 @@ export const LoginPage: React.FC = () => {
 
         {/* Security badge footer */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          <Lock size={14} style={{ color: 'var(--accent-teal)' }} />
+          <Lock size={14} style={{ color: 'var(--accent-gold)' }} />
           <span>256-bit encrypted tenant session</span>
         </div>
       </div>
