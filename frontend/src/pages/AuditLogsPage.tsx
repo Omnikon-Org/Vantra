@@ -68,9 +68,9 @@ export const AuditLogsPage: React.FC = () => {
 
   const getActionBadgeColor = (action: string) => {
     if (action.includes('DELETED')) return { bg: 'var(--danger-bg)', text: 'var(--danger)', border: 'var(--danger-border)' };
-    if (action.includes('CREATED')) return { bg: 'var(--accent-gold-tint)', text: 'var(--accent-gold)', border: 'rgba(212, 165, 72, 0.28)' };
+    if (action.includes('CREATED')) return { bg: 'var(--accent-emerald-tint)', text: 'var(--accent-mint)', border: 'rgba(24, 201, 139, 0.28)' };
     if (action.includes('RESOLVED') || action.includes('MATCH')) return { bg: 'var(--success-bg)', text: 'var(--success)', border: 'var(--success-border)' };
-    return { bg: 'var(--accent-gold-tint)', text: 'var(--accent-gold-dim)', border: 'rgba(212, 165, 72, 0.22)' };
+    return { bg: 'rgba(255, 255, 255, 0.05)', text: 'var(--text-secondary)', border: 'var(--border-subtle)' };
   };
 
   return (
@@ -85,9 +85,9 @@ export const AuditLogsPage: React.FC = () => {
             style={{
               padding: '3px 10px',
               borderRadius: 'var(--radius-full)',
-              background: 'var(--accent-gold-tint)',
-              border: '1px solid rgba(212, 165, 72, 0.28)',
-              color: 'var(--accent-gold)',
+              background: 'var(--accent-emerald-tint)',
+              border: '1px solid rgba(24, 201, 139, 0.28)',
+              color: 'var(--accent-mint)',
               fontSize: '0.725rem',
               fontWeight: 700,
               display: 'inline-flex',
@@ -121,7 +121,7 @@ export const AuditLogsPage: React.FC = () => {
 
         <div className="card" style={{ padding: '24px 28px' }}>
           <div className="meta-label">RECORDING STATUS</div>
-          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--accent-gold)', marginTop: 4 }} className="financial-figure">
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--accent-mint)', marginTop: 4 }} className="financial-figure">
             Continuous
           </div>
           <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 6 }}>

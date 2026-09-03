@@ -18,7 +18,7 @@ export const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Load
         size={36}
         style={{
           animation: 'spin 1s linear infinite',
-          color: 'var(--accent-primary)'
+          color: 'var(--accent-emerald)'
         }}
       />
       <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{message}</span>

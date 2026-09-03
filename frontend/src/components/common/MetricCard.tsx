@@ -6,7 +6,7 @@ export interface MetricCardProps {
   value: string | number;
   subtitle?: string;
   icon: LucideIcon;
-  accentColor?: 'gold' | 'blue' | 'violet' | 'teal' | 'emerald' | 'cyan' | 'amber' | 'red';
+  accentColor?: 'emerald' | 'mint' | 'amber' | 'red' | 'gold' | 'blue' | 'violet' | 'teal' | 'cyan';
   trend?: string;
   isPositive?: boolean;
   isLoading?: boolean;
@@ -28,7 +28,7 @@ export const renderFormattedStatValue = (val: string | number): React.ReactNode 
         <span>{num}</span>
         <span
           style={{
-            color: 'var(--accent-gold)',
+            color: 'var(--accent-mint)',
             fontSize: '0.6em',
             verticalAlign: 'super',
             fontWeight: 700,
@@ -49,7 +49,7 @@ export const renderFormattedStatValue = (val: string | number): React.ReactNode 
         <span>{num}</span>
         <span
           style={{
-            color: 'var(--accent-gold)',
+            color: 'var(--accent-mint)',
             fontSize: '0.62em',
             verticalAlign: 'super',
             fontWeight: 700,
@@ -72,7 +72,7 @@ export const renderFormattedStatValue = (val: string | number): React.ReactNode 
         <span>{num}</span>
         <span
           style={{
-            color: 'var(--accent-gold)',
+            color: 'var(--accent-mint)',
             fontSize: '0.45em',
             verticalAlign: 'super',
             fontWeight: 700,
@@ -95,7 +95,7 @@ export const renderFormattedStatValue = (val: string | number): React.ReactNode 
         <span>{score}</span>
         <span
           style={{
-            color: 'var(--accent-gold)',
+            color: 'var(--accent-mint)',
             fontSize: '0.5em',
             verticalAlign: 'super',
             fontWeight: 700,
@@ -116,7 +116,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   value,
   subtitle,
   icon: Icon,
-  accentColor = 'gold',
+  accentColor = 'emerald',
   trend,
   isPositive,
   isLoading,
@@ -127,38 +127,39 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   const getColorScheme = () => {
     switch (accentColor) {
-      case 'emerald':
+      case 'mint':
+      case 'cyan':
         return {
-          color: 'var(--success)',
-          bg: 'var(--success-bg)',
-          border: 'var(--success-border)',
-          glow: 'rgba(34, 197, 94, 0.15)'
+          color: 'var(--accent-mint)',
+          bg: 'var(--accent-mint-tint)',
+          border: 'rgba(99, 230, 178, 0.28)',
+          glow: 'rgba(99, 230, 178, 0.16)'
         };
       case 'amber':
         return {
           color: 'var(--warning)',
           bg: 'var(--warning-bg)',
           border: 'var(--warning-border)',
-          glow: 'rgba(245, 166, 35, 0.15)'
+          glow: 'rgba(245, 185, 66, 0.15)'
         };
       case 'red':
         return {
           color: 'var(--danger)',
           bg: 'var(--danger-bg)',
           border: 'var(--danger-border)',
-          glow: 'rgba(239, 68, 68, 0.18)'
+          glow: 'rgba(248, 113, 113, 0.18)'
         };
-      case 'gold':
-      case 'blue':
+      case 'emerald':
       case 'teal':
-      case 'cyan':
+      case 'blue':
       case 'violet':
+      case 'gold':
       default:
         return {
-          color: 'var(--accent-gold)',
-          bg: 'var(--accent-gold-tint)',
-          border: 'rgba(212, 165, 72, 0.28)',
-          glow: 'rgba(212, 165, 72, 0.16)'
+          color: 'var(--accent-emerald)',
+          bg: 'var(--accent-emerald-tint)',
+          border: 'rgba(24, 201, 139, 0.28)',
+          glow: 'rgba(24, 201, 139, 0.16)'
         };
     }
   };
@@ -183,9 +184,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         className={`card card-hover ${className}`}
         style={{
           padding: '28px 32px',
-          background: 'linear-gradient(135deg, rgba(18, 20, 26, 0.98) 0%, rgba(28, 31, 41, 0.92) 100%)',
-          borderColor: 'rgba(212, 165, 72, 0.32)',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45), 0 0 24px rgba(212, 165, 72, 0.12)',
+          background: 'linear-gradient(135deg, rgba(13, 18, 16, 0.98) 0%, rgba(23, 32, 27, 0.92) 100%)',
+          borderColor: 'rgba(24, 201, 139, 0.32)',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 24px rgba(24, 201, 139, 0.12)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
@@ -196,19 +197,19 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div
               style={{
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 borderRadius: 'var(--radius-md)',
-                background: 'var(--accent-gold-tint)',
-                color: 'var(--accent-gold)',
-                border: '1px solid rgba(212, 165, 72, 0.3)',
+                background: 'var(--accent-emerald-tint)',
+                color: 'var(--accent-emerald)',
+                border: '1px solid rgba(24, 201, 139, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 0 16px rgba(212, 165, 72, 0.18)'
+                boxShadow: '0 0 16px rgba(24, 201, 139, 0.18)'
               }}
             >
-              <Icon size={20} />
+              <Icon size={19} />
             </div>
             <div>
               <div
@@ -281,7 +282,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         flexDirection: 'column',
         justifyContent: 'space-between',
         borderRadius: 'var(--radius-xl)',
-        border: '1px solid var(--border-subtle)'
+        border: '1px solid var(--border-subtle)',
+        background: 'var(--bg-surface)'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

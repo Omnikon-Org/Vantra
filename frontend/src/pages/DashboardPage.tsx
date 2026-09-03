@@ -6,25 +6,20 @@ import { Account, Transaction, Reconciliation, ReconciliationException, AuditLog
 import { PageHeader } from '../components/common/PageHeader';
 import { MetricCard } from '../components/common/MetricCard';
 import { CashFlowChart } from '../components/common/CashFlowChart';
-import { StatusBadge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
 import {
   Wallet,
   ArrowDownLeft,
   ArrowUpRight,
   GitMerge,
-  AlertOctagon,
   ArrowRight,
   TrendingUp,
   ShieldAlert,
-  Flame,
   PlusCircle,
   Play,
   ScrollText,
   Activity,
-  CheckCircle2,
-  ExternalLink,
-  ShieldCheck
+  CheckCircle2
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -101,7 +96,7 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-      {/* 1. Standardized Executive Command Header with Editorial Typography */}
+      {/* 1. Standardized Executive Command Header */}
       <PageHeader
         eyebrow="OVERVIEW"
         title={<>{getGreeting()}, {user?.name || user?.email?.split('@')[0]} — Financial <em>Overview</em></>}
@@ -114,21 +109,21 @@ export const DashboardPage: React.FC = () => {
               gap: 6,
               padding: '3px 10px',
               borderRadius: 'var(--radius-full)',
-              background: 'var(--accent-gold-tint)',
-              border: '1px solid rgba(212, 165, 72, 0.28)',
-              color: 'var(--accent-gold)',
+              background: 'var(--accent-emerald-tint)',
+              border: '1px solid rgba(24, 201, 139, 0.28)',
+              color: 'var(--accent-mint)',
               fontSize: '0.725rem',
               fontWeight: 700
             }}
           >
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-gold)' }} className="node-pulse" />
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-emerald)' }} className="node-pulse" />
             <span>OPERATIONAL</span>
           </span>
         }
         actions={
           <>
             <Link to="/transactions" className="btn btn-secondary btn-sm">
-              <PlusCircle size={15} style={{ color: 'var(--accent-gold)' }} />
+              <PlusCircle size={15} style={{ color: 'var(--accent-emerald)' }} />
               <span>+ Record Transaction</span>
             </Link>
             <Link to="/reconciliation" className="btn btn-primary btn-sm">
@@ -139,12 +134,12 @@ export const DashboardPage: React.FC = () => {
         }
       />
 
-      {/* 2. Critical Fraud Alert Banner (Only when critical/high fraud alerts exist) */}
+      {/* 2. Critical Fraud Alert Banner */}
       {fraudStats && (fraudStats.criticalCount > 0 || fraudStats.highCount > 0) && (
         <div
           style={{
-            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 166, 35, 0.10) 100%)',
-            border: '1px solid rgba(239, 68, 68, 0.30)',
+            background: 'linear-gradient(90deg, rgba(248, 113, 113, 0.12) 0%, rgba(245, 185, 66, 0.10) 100%)',
+            border: '1px solid rgba(248, 113, 113, 0.30)',
             borderRadius: 'var(--radius-xl)',
             padding: '14px 20px',
             display: 'flex',
@@ -160,7 +155,7 @@ export const DashboardPage: React.FC = () => {
                 width: 34,
                 height: 34,
                 borderRadius: 'var(--radius-md)',
-                background: 'rgba(239, 68, 68, 0.18)',
+                background: 'rgba(248, 113, 113, 0.18)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -179,18 +174,18 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <Link to="/fraud" className="btn btn-sm btn-danger">
-            View Fraud Center →
+          <Link to="/fraud" className="btn btn-danger btn-sm">
+            Review Telemetry →
           </Link>
         </div>
       )}
 
-      {/* 3. Open Reconciliation Exceptions Banner */}
-      {openExceptions.length > 0 && (!fraudStats || (fraudStats.criticalCount === 0 && fraudStats.highCount === 0)) && (
+      {/* 3. Operational Exception Triage Banner */}
+      {openExceptions.length > 0 && (
         <div
           style={{
-            background: 'linear-gradient(90deg, rgba(245, 166, 35, 0.10) 0%, rgba(212, 165, 72, 0.08) 100%)',
-            border: '1px solid rgba(245, 166, 35, 0.28)',
+            background: 'rgba(245, 185, 66, 0.08)',
+            border: '1px solid rgba(245, 185, 66, 0.28)',
             borderRadius: 'var(--radius-xl)',
             padding: '14px 20px',
             display: 'flex',
@@ -206,7 +201,7 @@ export const DashboardPage: React.FC = () => {
                 width: 34,
                 height: 34,
                 borderRadius: 'var(--radius-md)',
-                background: 'rgba(245, 166, 35, 0.18)',
+                background: 'rgba(245, 185, 66, 0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -214,29 +209,29 @@ export const DashboardPage: React.FC = () => {
                 flexShrink: 0
               }}
             >
-              <AlertOctagon size={18} />
+              <Activity size={18} />
             </div>
             <div>
               <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {openExceptions.length} Unresolved Variance Exception{openExceptions.length > 1 ? 's' : ''}
+                {openExceptions.length} Unresolved Reconciliation Exception{openExceptions.length > 1 ? 's' : ''} Open
               </div>
               <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                Statement discrepancies require approval to close ledger period.
+                Amount discrepancies and unmatched records pending controller sign-off.
               </div>
             </div>
           </div>
-          <Link to="/exceptions" className="btn btn-sm btn-secondary" style={{ borderColor: 'rgba(245, 166, 35, 0.35)', color: 'var(--text-primary)' }}>
-            Review Exceptions →
+          <Link to="/exceptions" className="btn btn-secondary btn-sm" style={{ color: 'var(--warning)', borderColor: 'rgba(245, 185, 66, 0.4)' }}>
+            Resolve Discrepancies →
           </Link>
         </div>
       )}
 
-      {/* 4. Financial KPI Hierarchy: Dominant Net Balance + Supporting Grid */}
+      {/* 4. Top KPI Hierarchy Strip */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: '1.4fr 1fr 1fr 1fr',
-          gap: 20
+          gap: 16
         }}
         className="kpi-hierarchy-grid"
       >
@@ -247,16 +242,16 @@ export const DashboardPage: React.FC = () => {
           subtitle={`${accounts.length} operating accounts configured`}
           icon={Wallet}
           isDominant={true}
-          accentColor="gold"
+          accentColor="emerald"
           isLoading={isLoading}
           badge={
             <span
               style={{
                 fontSize: '0.675rem',
                 fontWeight: 700,
-                color: 'var(--accent-gold)',
-                background: 'var(--accent-gold-tint)',
-                border: '1px solid rgba(212, 165, 72, 0.28)',
+                color: 'var(--accent-mint)',
+                background: 'var(--accent-mint-tint)',
+                border: '1px solid rgba(99, 230, 178, 0.28)',
                 padding: '2px 8px',
                 borderRadius: 'var(--radius-full)'
               }}
@@ -283,7 +278,7 @@ export const DashboardPage: React.FC = () => {
           value={isLoading ? '$0.00' : `-$${totalOutflow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           subtitle="Vendor debits & payroll"
           icon={ArrowUpRight}
-          accentColor="gold"
+          accentColor="mint"
           isLoading={isLoading}
         />
 
@@ -293,7 +288,7 @@ export const DashboardPage: React.FC = () => {
           value={isLoading ? '100.0%' : `${reconHealthPercent}%`}
           subtitle={`${openExceptions.length} active exceptions`}
           icon={GitMerge}
-          accentColor="gold"
+          accentColor="emerald"
           isLoading={isLoading}
         />
       </div>
@@ -331,7 +326,7 @@ export const DashboardPage: React.FC = () => {
                 to="/transactions"
                 style={{
                   fontSize: '0.8125rem',
-                  color: 'var(--accent-gold)',
+                  color: 'var(--accent-mint)',
                   textDecoration: 'none',
                   fontWeight: 600,
                   display: 'flex',
@@ -389,7 +384,7 @@ export const DashboardPage: React.FC = () => {
                             style={{
                               fontWeight: 700,
                               fontSize: '0.9rem',
-                              color: tx.type === 'INCOME' ? 'var(--success)' : 'var(--text-primary)'
+                              color: tx.type === 'INCOME' ? 'var(--accent-emerald)' : 'var(--text-primary)'
                             }}
                             className="financial-figure"
                           >
@@ -411,24 +406,24 @@ export const DashboardPage: React.FC = () => {
           <div className="card" style={{ padding: '24px 28px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <GitMerge size={17} style={{ color: 'var(--accent-gold)' }} />
+                <GitMerge size={17} style={{ color: 'var(--accent-emerald)' }} />
                 <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Reconciliation Health
                 </h2>
               </div>
-              <Link to="/reconciliation" style={{ fontSize: '0.775rem', color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}>
+              <Link to="/reconciliation" style={{ fontSize: '0.775rem', color: 'var(--accent-mint)', textDecoration: 'none', fontWeight: 600 }}>
                 Manage →
               </Link>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div style={{ padding: '12px 14px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ padding: '12px 14px', background: 'rgba(8, 11, 10, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
                 <div className="meta-label">MATCH RATE</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--accent-gold)', marginTop: 2 }} className="financial-figure">
+                <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--accent-emerald)', marginTop: 2 }} className="financial-figure">
                   {reconHealthPercent}%
                 </div>
               </div>
-              <div style={{ padding: '12px 14px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ padding: '12px 14px', background: 'rgba(8, 11, 10, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
                 <div className="meta-label">EXCEPTIONS</div>
                 <div style={{ fontSize: '1.35rem', fontWeight: 700, color: openExceptions.length > 0 ? 'var(--warning)' : 'var(--success)', marginTop: 2 }} className="financial-figure">
                   {openExceptions.length}
@@ -437,13 +432,13 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Operational Pipeline Flow */}
-            <div style={{ padding: '11px 14px', background: 'rgba(10, 12, 16, 0.5)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', marginBottom: 12 }}>
+            <div style={{ padding: '11px 14px', background: 'rgba(8, 11, 10, 0.5)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', marginBottom: 12 }}>
               <div style={{ fontSize: '0.675rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6 }} className="meta-label">
                 PIPELINE STATUS
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Pass 1-5 Engine:</span>
-                <span style={{ color: 'var(--accent-gold)', fontWeight: 700 }}>SYNCHRONIZED</span>
+                <span style={{ color: 'var(--accent-mint)', fontWeight: 700 }}>SYNCHRONIZED</span>
               </div>
             </div>
 
@@ -462,25 +457,25 @@ export const DashboardPage: React.FC = () => {
                   Fraud Risk Telemetry
                 </h2>
               </div>
-              <Link to="/fraud" style={{ fontSize: '0.775rem', color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}>
+              <Link to="/fraud" style={{ fontSize: '0.775rem', color: 'var(--accent-mint)', textDecoration: 'none', fontWeight: 600 }}>
                 Fraud Center →
               </Link>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
-              <div style={{ padding: '12px 6px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
+              <div style={{ padding: '12px 6px', background: 'rgba(8, 11, 10, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>CRITICAL</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 700, color: (fraudStats?.criticalCount || 0) > 0 ? 'var(--danger)' : 'var(--text-primary)', marginTop: 2 }} className="financial-figure">
                   {fraudStats?.criticalCount || 0}
                 </div>
               </div>
-              <div style={{ padding: '12px 6px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
+              <div style={{ padding: '12px 6px', background: 'rgba(8, 11, 10, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>HIGH</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 700, color: (fraudStats?.highCount || 0) > 0 ? 'var(--warning)' : 'var(--text-primary)', marginTop: 2 }} className="financial-figure">
                   {fraudStats?.highCount || 0}
                 </div>
               </div>
-              <div style={{ padding: '12px 6px', background: 'rgba(10, 12, 16, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
+              <div style={{ padding: '12px 6px', background: 'rgba(8, 11, 10, 0.75)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>MEDIUM</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 700, color: (fraudStats?.mediumCount || 0) > 0 ? 'var(--warning)' : 'var(--text-primary)', marginTop: 2 }} className="financial-figure">
                   {fraudStats?.mediumCount || 0}
@@ -500,12 +495,12 @@ export const DashboardPage: React.FC = () => {
           <div className="card" style={{ padding: '24px 28px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ScrollText size={17} style={{ color: 'var(--accent-gold)' }} />
+                <ScrollText size={17} style={{ color: 'var(--accent-emerald)' }} />
                 <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Live Audit Trail
                 </h2>
               </div>
-              <Link to="/audit-logs" style={{ fontSize: '0.775rem', color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 600 }}>
+              <Link to="/audit-logs" style={{ fontSize: '0.775rem', color: 'var(--accent-mint)', textDecoration: 'none', fontWeight: 600 }}>
                 Inspect →
               </Link>
             </div>
@@ -526,7 +521,7 @@ export const DashboardPage: React.FC = () => {
                       flexDirection: 'column',
                       gap: 3,
                       padding: '10px 12px',
-                      background: 'rgba(10, 12, 16, 0.65)',
+                      background: 'rgba(8, 11, 10, 0.65)',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border-subtle)'
                     }}
@@ -536,7 +531,7 @@ export const DashboardPage: React.FC = () => {
                         style={{
                           fontSize: '0.6875rem',
                           fontWeight: 700,
-                          color: 'var(--accent-gold)'
+                          color: 'var(--accent-mint)'
                         }}
                         className="mono"
                       >

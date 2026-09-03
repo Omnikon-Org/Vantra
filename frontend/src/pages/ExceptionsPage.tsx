@@ -127,11 +127,11 @@ export const ExceptionsPage: React.FC = () => {
             style={{
               padding: '3px 10px',
               borderRadius: 'var(--radius-full)',
-              background: 'var(--accent-gold-tint)',
-              color: 'var(--accent-gold)',
+              background: 'var(--accent-emerald-tint)',
+              color: 'var(--accent-mint)',
               fontSize: '0.725rem',
               fontWeight: 700,
-              border: '1px solid rgba(212, 165, 72, 0.28)'
+              border: '1px solid rgba(24, 201, 139, 0.28)'
             }}
             className="mono"
           >
@@ -209,8 +209,8 @@ export const ExceptionsPage: React.FC = () => {
               key={tab.value}
               onClick={() => { setStatusFilter(tab.value); setPage(1); }}
               style={{
-                background: statusFilter === tab.value ? 'var(--accent-gold)' : 'transparent',
-                color: statusFilter === tab.value ? '#0A0C10' : 'var(--text-secondary)',
+                background: statusFilter === tab.value ? 'var(--accent-emerald)' : 'transparent',
+                color: statusFilter === tab.value ? '#080B0A' : 'var(--text-secondary)',
                 border: 'none',
                 padding: '6px 14px',
                 borderRadius: 'var(--radius-sm)',

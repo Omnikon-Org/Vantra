@@ -97,7 +97,7 @@ export const RegisterPage: React.FC = () => {
             left: '-10%',
             width: '400px',
             height: '400px',
-            background: 'radial-gradient(circle, rgba(212, 165, 72, 0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(24, 201, 139, 0.10) 0%, transparent 70%)',
             filter: 'blur(60px)',
             pointerEvents: 'none'
           }}
@@ -110,22 +110,22 @@ export const RegisterPage: React.FC = () => {
               width: 42,
               height: 42,
               borderRadius: 'var(--radius-md)',
-              background: 'var(--accent-gold-gradient)',
+              background: 'var(--accent-gradient)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#0A0C10',
-              boxShadow: '0 4px 16px rgba(212, 165, 72, 0.35)'
+              color: '#080B0A',
+              boxShadow: '0 4px 16px rgba(24, 201, 139, 0.35)'
             }}
           >
-            <ShieldCheck size={24} />
+            <ShieldCheck size={24} strokeWidth={2.5} />
           </div>
           <div>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
               VANTRA
             </div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Financial Engine
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-mint)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              FINANCIAL INFRASTRUCTURE
             </div>
           </div>
         </Link>
@@ -139,9 +139,9 @@ export const RegisterPage: React.FC = () => {
               gap: 8,
               padding: '4px 12px',
               borderRadius: 'var(--radius-full)',
-              background: 'var(--accent-gold-tint)',
-              border: '1px solid rgba(212, 165, 72, 0.28)',
-              color: 'var(--accent-gold)',
+              background: 'var(--accent-emerald-tint)',
+              border: '1px solid rgba(24, 201, 139, 0.28)',
+              color: 'var(--accent-mint)',
               fontSize: '0.75rem',
               fontWeight: 700,
               letterSpacing: '0.04em',
@@ -154,7 +154,7 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.3rem)', fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.02em', color: 'var(--text-primary)', marginBottom: 16 }}>
-            Deploy your dedicated financial organization in <em>minutes</em>.
+            Deploy your dedicated financial organization in minutes.
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
@@ -164,7 +164,7 @@ export const RegisterPage: React.FC = () => {
               'Instant reconciliation with bank statement feeds'
             ].map((text, idx) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <CheckCircle2 size={16} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                <CheckCircle2 size={16} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{text}</span>
               </div>
             ))}
@@ -172,7 +172,7 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          <Lock size={14} style={{ color: 'var(--accent-gold)' }} />
+          <Lock size={14} style={{ color: 'var(--accent-emerald)' }} />
           <span>Zero cross-tenant data leakage guaranteed</span>
         </div>
       </div>

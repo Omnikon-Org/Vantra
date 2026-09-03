@@ -174,11 +174,11 @@ export const FraudCenterPage: React.FC = () => {
             style={{
               padding: '3px 10px',
               borderRadius: 'var(--radius-full)',
-              background: (stats?.criticalCount || 0) > 0 ? 'var(--danger-bg)' : 'var(--accent-gold-tint)',
-              color: (stats?.criticalCount || 0) > 0 ? 'var(--danger)' : 'var(--accent-gold)',
+              background: (stats?.criticalCount || 0) > 0 ? 'var(--danger-bg)' : 'var(--accent-emerald-tint)',
+              color: (stats?.criticalCount || 0) > 0 ? 'var(--danger)' : 'var(--accent-mint)',
               fontSize: '0.725rem',
               fontWeight: 700,
-              border: `1px solid ${(stats?.criticalCount || 0) > 0 ? 'var(--danger-border)' : 'rgba(212, 165, 72, 0.28)'}`
+              border: `1px solid ${(stats?.criticalCount || 0) > 0 ? 'var(--danger-border)' : 'rgba(24, 201, 139, 0.28)'}`
             }}
             className="mono"
           >
@@ -239,7 +239,7 @@ export const FraudCenterPage: React.FC = () => {
           value={stats ? `${stats.avgRiskScore.toFixed(0)}/100` : '0/100'}
           subtitle="Evaluated across all accounts"
           icon={ShieldCheck}
-          accentColor="gold"
+          accentColor="emerald"
           isLoading={isLoading}
         />
       </div>

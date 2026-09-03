@@ -100,46 +100,41 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       action: () => { navigate('/audit-logs'); onClose(); }
     },
     {
-      id: 'act-new-tx',
-      title: 'Record New Transaction',
-      subtitle: 'Ingest a balanced debit/credit transaction',
+      id: 'action-new-txn',
+      title: 'Record New Journal Transaction',
+      subtitle: 'Post an income or expense record directly',
       icon: PlusCircle,
       category: 'Actions',
       action: () => {
-        navigate('/transactions');
         onClose();
-        if (onOpenNewTransaction) onOpenNewTransaction();
+        if (onOpenNewTransaction) {
+          onOpenNewTransaction();
+        } else {
+          navigate('/transactions');
+        }
       }
     },
     {
-      id: 'act-run-recon',
-      title: 'Execute Reconciliation Session',
-      subtitle: 'Compare ledger entries with statement feed',
+      id: 'action-run-recon',
+      title: 'Execute Algorithmic Reconciliation',
+      subtitle: 'Run 5-pass matching against account ledgers',
       icon: Play,
       category: 'Actions',
       action: () => {
-        navigate('/reconciliation');
         onClose();
-        if (onOpenRunRecon) onOpenRunRecon();
-      }
-    },
-    {
-      id: 'act-run-fraud-scan',
-      title: 'Execute Fraud Risk Scan',
-      subtitle: 'Run rule-based anomaly detection on transactions',
-      icon: ShieldAlert,
-      category: 'Actions',
-      action: () => {
-        navigate('/fraud');
-        onClose();
+        if (onOpenRunRecon) {
+          onOpenRunRecon();
+        } else {
+          navigate('/reconciliation');
+        }
       }
     }
   ];
 
-  const filteredCommands = commands.filter(cmd =>
-    cmd.title.toLowerCase().includes(query.toLowerCase()) ||
-    cmd.subtitle.toLowerCase().includes(query.toLowerCase()) ||
-    cmd.category.toLowerCase().includes(query.toLowerCase())
+  const filteredCommands = commands.filter(c =>
+    c.title.toLowerCase().includes(query.toLowerCase()) ||
+    c.subtitle.toLowerCase().includes(query.toLowerCase()) ||
+    c.category.toLowerCase().includes(query.toLowerCase())
   );
 
   useEffect(() => {
@@ -181,7 +176,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         left: 0,
         width: '100vw',
         height: '100vh',
-        background: 'rgba(3, 7, 18, 0.75)',
+        background: 'rgba(5, 8, 7, 0.82)',
         backdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'flex-start',
@@ -198,9 +193,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         style={{
           width: '100%',
           maxWidth: 620,
-          background: 'var(--bg-card)',
-          border: '1px solid rgba(20, 184, 166, 0.3)',
-          boxShadow: 'var(--shadow-lg), 0 0 35px rgba(20, 184, 166, 0.12)',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-default)',
+          boxShadow: 'var(--shadow-lg), 0 0 35px rgba(24, 201, 139, 0.12)',
           borderRadius: 'var(--radius-xl)',
           overflow: 'hidden'
         }}
@@ -213,11 +208,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             alignItems: 'center',
             gap: 12,
             padding: '16px 20px',
-            borderBottom: '1px solid var(--border-primary)',
-            background: 'rgba(6, 11, 20, 0.7)'
+            borderBottom: '1px solid var(--border-subtle)',
+            background: 'rgba(8, 11, 10, 0.85)'
           }}
         >
-          <Search size={18} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+          <Search size={18} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
@@ -229,7 +224,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               flex: 1,
               background: 'transparent',
               border: 'none',
-              color: '#FFFFFF',
+              color: 'var(--text-primary)',
               fontSize: '0.95rem',
               outline: 'none',
               fontFamily: 'inherit'
@@ -273,8 +268,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     justifyContent: 'space-between',
                     padding: '11px 14px',
                     borderRadius: 'var(--radius-md)',
-                    background: isSelected ? 'rgba(20, 184, 166, 0.12)' : 'transparent',
-                    border: isSelected ? '1px solid rgba(20, 184, 166, 0.28)' : '1px solid transparent',
+                    background: isSelected ? 'var(--accent-emerald-tint)' : 'transparent',
+                    border: isSelected ? '1px solid rgba(24, 201, 139, 0.28)' : '1px solid transparent',
                     cursor: 'pointer',
                     transition: 'all 0.12s ease'
                   }}
@@ -285,8 +280,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         width: 32,
                         height: 32,
                         borderRadius: 'var(--radius-sm)',
-                        background: isSelected ? 'var(--accent-teal)' : 'rgba(255, 255, 255, 0.05)',
-                        color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
+                        background: isSelected ? 'var(--accent-emerald)' : 'rgba(255, 255, 255, 0.05)',
+                        color: isSelected ? '#080B0A' : 'var(--text-secondary)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -329,8 +324,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '10px 18px',
-            borderTop: '1px solid var(--border-secondary)',
-            background: 'rgba(6, 11, 20, 0.5)',
+            borderTop: '1px solid var(--border-subtle)',
+            background: 'rgba(8, 11, 10, 0.65)',
             fontSize: '0.75rem',
             color: 'var(--text-muted)'
           }}

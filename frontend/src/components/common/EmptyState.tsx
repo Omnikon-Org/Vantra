@@ -30,7 +30,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '56px 24px',
+        padding: '52px 24px',
         textAlign: 'center',
         background: 'var(--bg-surface)',
         borderRadius: 'var(--radius-xl)',
@@ -40,20 +40,20 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     >
       <div
         style={{
-          width: 52,
-          height: 52,
+          width: 48,
+          height: 48,
           borderRadius: '50%',
-          background: 'var(--accent-gold-tint)',
-          color: 'var(--accent-gold)',
+          background: 'var(--accent-emerald-tint)',
+          color: 'var(--accent-emerald)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: 16,
-          border: '1px solid rgba(212, 165, 72, 0.28)',
-          boxShadow: '0 0 20px rgba(212, 165, 72, 0.16)'
+          border: '1px solid rgba(24, 201, 139, 0.28)',
+          boxShadow: '0 0 18px rgba(24, 201, 139, 0.14)'
         }}
       >
-        <Icon size={24} />
+        <Icon size={22} />
       </div>
       <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.01em' }}>
         {title}

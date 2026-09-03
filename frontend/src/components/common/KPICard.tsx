@@ -8,7 +8,7 @@ interface KPICardProps {
   subtitle?: string;
   icon: LucideIcon;
   variant?: 'primary' | 'success' | 'danger' | 'warning' | 'info';
-  accentColor?: 'gold' | 'blue' | 'violet' | 'teal' | 'emerald' | 'cyan' | 'amber' | 'red';
+  accentColor?: 'emerald' | 'mint' | 'amber' | 'red' | 'gold' | 'blue' | 'violet' | 'teal' | 'cyan';
   trend?: string;
   isLoading?: boolean;
 }
@@ -18,22 +18,25 @@ export const KPICard: React.FC<KPICardProps> = ({
   value,
   subtitle,
   icon: Icon,
-  variant = 'primary',
-  accentColor = 'gold',
+  accentColor = 'emerald',
   trend,
   isLoading
 }) => {
   const getColor = () => {
     switch (accentColor) {
-      case 'emerald': return { color: 'var(--success)', bg: 'var(--success-bg)', border: 'var(--success-border)' };
-      case 'amber': return { color: 'var(--warning)', bg: 'var(--warning-bg)', border: 'var(--warning-border)' };
-      case 'red': return { color: 'var(--danger)', bg: 'var(--danger-bg)', border: 'var(--danger-border)' };
-      case 'gold':
-      case 'blue':
-      case 'teal':
+      case 'mint':
       case 'cyan':
-      case 'violet':
-      default: return { color: 'var(--accent-gold)', bg: 'var(--accent-gold-tint)', border: 'rgba(212, 165, 72, 0.28)' };
+        return { color: 'var(--accent-mint)', bg: 'var(--accent-mint-tint)', border: 'rgba(99, 230, 178, 0.28)' };
+      case 'amber':
+        return { color: 'var(--warning)', bg: 'var(--warning-bg)', border: 'var(--warning-border)' };
+      case 'red':
+        return { color: 'var(--danger)', bg: 'var(--danger-bg)', border: 'var(--danger-border)' };
+      case 'emerald':
+      case 'teal':
+      case 'blue':
+      case 'gold':
+      default:
+        return { color: 'var(--accent-emerald)', bg: 'var(--accent-emerald-tint)', border: 'rgba(24, 201, 139, 0.28)' };
     }
   };
 

@@ -180,7 +180,7 @@ export const AccountsPage: React.FC = () => {
 
         <div className="card" style={{ padding: '24px 28px' }}>
           <div className="meta-label">OPERATING BANK ACCOUNTS</div>
-          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--accent-gold)', marginTop: 4 }} className="financial-figure">
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--accent-mint)', marginTop: 4 }} className="financial-figure">
             {bankAccounts}
           </div>
           <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 6 }}>
@@ -190,7 +190,7 @@ export const AccountsPage: React.FC = () => {
 
         <div className="card" style={{ padding: '24px 28px' }}>
           <div className="meta-label">CREDIT & CASH FACILITIES</div>
-          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--accent-gold)', marginTop: 4 }} className="financial-figure">
+          <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--accent-mint)', marginTop: 4 }} className="financial-figure">
             {creditAccounts + accounts.filter(a => a.type === 'CASH').length}
           </div>
           <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: 6 }}>
@@ -255,12 +255,12 @@ export const AccountsPage: React.FC = () => {
                         width: 42,
                         height: 42,
                         borderRadius: 'var(--radius-md)',
-                        background: 'var(--accent-gold-tint)',
-                        border: '1px solid rgba(212, 165, 72, 0.28)',
+                        background: 'var(--accent-emerald-tint)',
+                        border: '1px solid rgba(24, 201, 139, 0.28)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: 'var(--accent-gold)'
+                        color: 'var(--accent-emerald)'
                       }}
                     >
                       <Icon size={20} />

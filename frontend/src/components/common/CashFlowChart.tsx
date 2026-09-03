@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Transaction } from '../../types';
-import { TrendingUp, DollarSign } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 
 interface CashFlowChartProps {
   transactions: Transaction[];
@@ -43,17 +43,17 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
       >
         <div
           style={{
-            width: 52,
-            height: 52,
+            width: 48,
+            height: 48,
             borderRadius: '50%',
-            background: 'var(--accent-gold-tint)',
-            color: 'var(--accent-gold)',
+            background: 'var(--accent-emerald-tint)',
+            color: 'var(--accent-emerald)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: 16,
-            border: '1px solid rgba(212, 165, 72, 0.28)',
-            boxShadow: '0 0 20px rgba(212, 165, 72, 0.16)'
+            border: '1px solid rgba(24, 201, 139, 0.28)',
+            boxShadow: '0 0 20px rgba(24, 201, 139, 0.16)'
           }}
         >
           <TrendingUp size={22} />
@@ -113,11 +113,11 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
               style={{
                 fontSize: '0.675rem',
                 fontWeight: 700,
-                color: 'var(--accent-gold)',
-                background: 'var(--accent-gold-tint)',
+                color: 'var(--accent-mint)',
+                background: 'var(--accent-mint-tint)',
                 padding: '2px 8px',
                 borderRadius: 'var(--radius-full)',
-                border: '1px solid rgba(212, 165, 72, 0.28)'
+                border: '1px solid rgba(99, 230, 178, 0.28)'
               }}
               className="mono"
             >
@@ -131,9 +131,9 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem' }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-emerald)' }} />
             <span style={{ color: 'var(--text-muted)' }}>Inflow:</span>
-            <strong style={{ color: 'var(--success)' }} className="financial-figure">+${totalInflow.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+            <strong style={{ color: 'var(--accent-emerald)' }} className="financial-figure">+${totalInflow.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem' }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-primary)' }} />
@@ -159,12 +159,12 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
             strokeDasharray="4 4"
           />
 
-          {/* Area under curve gradient (Warm Gold) */}
+          {/* Area under curve gradient (Emerald) */}
           <defs>
             <linearGradient id="flowGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent-gold)" stopOpacity="0.25" />
-              <stop offset="80%" stopColor="var(--accent-gold)" stopOpacity="0.03" />
-              <stop offset="100%" stopColor="var(--accent-gold)" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="var(--accent-emerald)" stopOpacity="0.22" />
+              <stop offset="80%" stopColor="var(--accent-emerald)" stopOpacity="0.02" />
+              <stop offset="100%" stopColor="var(--accent-emerald)" stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
@@ -174,11 +174,11 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
             fill="url(#flowGradient)"
           />
 
-          {/* Flow Line Path with Warm Gold Accent */}
+          {/* Flow Line Path with Emerald Accent */}
           <path
             d={pathD}
             fill="none"
-            stroke="var(--accent-gold)"
+            stroke="var(--accent-emerald)"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -194,7 +194,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
                   cx={p.x}
                   cy={p.y}
                   r={isHovered ? 6 : 4}
-                  fill={isPositive ? 'var(--success)' : 'var(--text-primary)'}
+                  fill={isPositive ? 'var(--accent-emerald)' : 'var(--text-primary)'}
                   stroke="var(--bg-surface)"
                   strokeWidth="2"
                   style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}
@@ -216,7 +216,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
               transform: 'translate(-50%, -120%)',
               background: 'var(--bg-elevated)',
               border: '1px solid var(--border-default)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.55)',
               borderRadius: 'var(--radius-sm)',
               padding: '7px 12px',
               fontSize: '0.75rem',
@@ -232,7 +232,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
               <span
                 style={{
                   fontWeight: 700,
-                  color: points[hoveredIndex].val >= 0 ? 'var(--success)' : 'var(--text-primary)'
+                  color: points[hoveredIndex].val >= 0 ? 'var(--accent-emerald)' : 'var(--text-primary)'
                 }}
                 className="financial-figure"
               >
@@ -260,7 +260,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
         }}
       >
         <span>
-          Net Operating Delta: <strong style={{ color: netFlow >= 0 ? 'var(--success)' : 'var(--danger)' }} className="financial-figure">{netFlow >= 0 ? '+' : '-'}${Math.abs(netFlow).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+          Net Operating Delta: <strong style={{ color: netFlow >= 0 ? 'var(--accent-emerald)' : 'var(--danger)' }} className="financial-figure">{netFlow >= 0 ? '+' : '-'}${Math.abs(netFlow).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
         </span>
         <span className="mono" style={{ fontSize: '0.7rem', letterSpacing: '0.04em' }}>CHRONOLOGICAL DISBURSEMENT STREAM</span>
       </div>

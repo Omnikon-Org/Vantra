@@ -44,7 +44,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               marginBottom: 6
             }}
           >
-            <span style={{ color: 'var(--accent-gold)', fontSize: '0.65rem' }}>●</span>
+            <span style={{ color: 'var(--accent-emerald)', fontSize: '0.65rem' }}>●</span>
             <span>{eyebrow}</span>
           </div>
         )}

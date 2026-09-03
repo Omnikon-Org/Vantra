@@ -142,23 +142,23 @@ export const AppLayout: React.FC = () => {
                 width: 34,
                 height: 34,
                 borderRadius: 'var(--radius-md)',
-                background: 'var(--accent-gold-gradient)',
+                background: 'var(--accent-gradient)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#0A0C10',
-                boxShadow: '0 4px 14px rgba(212, 165, 72, 0.35)',
+                color: '#080B0A',
+                boxShadow: '0 2px 10px rgba(24, 201, 139, 0.35)',
                 flexShrink: 0
               }}
             >
-              <ShieldCheck size={20} />
+              <ShieldCheck size={20} strokeWidth={2.5} />
             </div>
             <div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-primary)', lineHeight: 1.1 }}>
                 VANTRA
               </div>
-              <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
-                FINANCIAL PLATFORM
+              <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--accent-mint)', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
+                FINANCIAL INFRASTRUCTURE
               </div>
             </div>
           </div>
@@ -169,7 +169,7 @@ export const AppLayout: React.FC = () => {
               margin: '14px 0 16px 0',
               padding: '9px 12px',
               borderRadius: 'var(--radius-md)',
-              background: 'rgba(10, 12, 16, 0.75)',
+              background: 'rgba(8, 11, 10, 0.85)',
               border: '1px solid var(--border-subtle)',
               display: 'flex',
               alignItems: 'center',
@@ -181,7 +181,7 @@ export const AppLayout: React.FC = () => {
             title="Switch Organization or Search Commands (⌘K)"
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-gold)', boxShadow: '0 0 8px var(--accent-gold)' }} />
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-emerald)', boxShadow: '0 0 8px var(--accent-emerald)' }} />
               <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 <div style={{ fontSize: '0.7875rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user?.tenant?.name || 'Vantra Organization'}
@@ -212,11 +212,11 @@ export const AppLayout: React.FC = () => {
               marginBottom: 16,
               transition: 'all 0.15s ease'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(212, 165, 72, 0.35)')}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(24, 201, 139, 0.35)')}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Search size={13} style={{ color: 'var(--accent-gold)' }} />
+              <Search size={13} style={{ color: 'var(--accent-emerald)' }} />
               <span>Search commands...</span>
             </div>
             <span
@@ -238,7 +238,7 @@ export const AppLayout: React.FC = () => {
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {navSections.map((sec, sIdx) => (
               <div key={sIdx}>
-                {/* Section Eyebrow with gold dot */}
+                {/* Section Eyebrow with emerald dot */}
                 <div
                   style={{
                     fontSize: '0.6875rem',
@@ -253,7 +253,7 @@ export const AppLayout: React.FC = () => {
                     gap: 6
                   }}
                 >
-                  <span style={{ color: 'var(--accent-gold)', fontSize: '0.55rem' }}>●</span>
+                  <span style={{ color: 'var(--accent-emerald)', fontSize: '0.55rem' }}>●</span>
                   <span>{sec.group}</span>
                 </div>
 
@@ -272,9 +272,9 @@ export const AppLayout: React.FC = () => {
                           borderRadius: 'var(--radius-md)',
                           fontSize: '0.825rem',
                           fontWeight: isActive ? 700 : 500,
-                          color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                          background: isActive ? 'var(--accent-gold-tint)' : 'transparent',
-                          borderLeft: isActive ? '3px solid var(--accent-gold)' : '3px solid transparent',
+                          color: isActive ? 'var(--accent-mint)' : 'var(--text-secondary)',
+                          background: isActive ? 'var(--accent-emerald-tint)' : 'transparent',
+                          borderLeft: isActive ? '3px solid var(--accent-emerald)' : '3px solid transparent',
                           textDecoration: 'none',
                           transition: 'all 0.15s ease'
                         })}
@@ -319,13 +319,13 @@ export const AppLayout: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 'var(--radius-full)',
-                  background: 'var(--accent-gold-gradient)',
+                  background: 'var(--accent-gradient)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 800,
                   fontSize: '0.8rem',
-                  color: '#0A0C10',
+                  color: '#080B0A',
                   flexShrink: 0
                 }}
               >
@@ -336,7 +336,7 @@ export const AppLayout: React.FC = () => {
                   {user?.name || user?.email?.split('@')[0]}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', fontWeight: 700 }} className="mono">
+                  <span style={{ fontSize: '0.65rem', color: 'var(--accent-mint)', fontWeight: 700 }} className="mono">
                     {user?.role || 'ADMIN'}
                   </span>
                   <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>• Tenant</span>
@@ -380,14 +380,14 @@ export const AppLayout: React.FC = () => {
                 width: 28,
                 height: 28,
                 borderRadius: 'var(--radius-sm)',
-                background: 'var(--accent-gold-gradient)',
+                background: 'var(--accent-gradient)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#0A0C10'
+                color: '#080B0A'
               }}
             >
-              <ShieldCheck size={16} />
+              <ShieldCheck size={16} strokeWidth={2.5} />
             </div>
             <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
               VANTRA
@@ -400,7 +400,7 @@ export const AppLayout: React.FC = () => {
               onClick={() => setCommandPaletteOpen(true)}
               style={{ padding: '5px 8px' }}
             >
-              <Search size={15} />
+              <Search size={15} style={{ color: 'var(--accent-emerald)' }} />
             </button>
             <button
               className="btn btn-secondary btn-sm"
@@ -448,7 +448,7 @@ export const AppLayout: React.FC = () => {
                       gap: 6
                     }}
                   >
-                    <span style={{ color: 'var(--accent-gold)', fontSize: '0.55rem' }}>●</span>
+                    <span style={{ color: 'var(--accent-emerald)', fontSize: '0.55rem' }}>●</span>
                     <span>{sec.group}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -467,9 +467,9 @@ export const AppLayout: React.FC = () => {
                             borderRadius: 'var(--radius-md)',
                             fontSize: '0.925rem',
                             fontWeight: isActive ? 700 : 500,
-                            color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                            background: isActive ? 'var(--accent-gold-tint)' : 'transparent',
-                            borderLeft: isActive ? '3px solid var(--accent-gold)' : '3px solid transparent',
+                            color: isActive ? 'var(--accent-mint)' : 'var(--text-secondary)',
+                            background: isActive ? 'var(--accent-emerald-tint)' : 'transparent',
+                            borderLeft: isActive ? '3px solid var(--accent-emerald)' : '3px solid transparent',
                             textDecoration: 'none'
                           })}
                         >
